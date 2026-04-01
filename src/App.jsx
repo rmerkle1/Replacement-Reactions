@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { PRESET_REACTIONS } from './data/chemistry.js'
+import { getIonColor } from './data/chemistry.js'
 import {
   uid, deriveProducts, buildMoleculeFromMembers, getMembers,
-  dist, autoCoeff, gridPosition,
+  dist, autoCoeff, gridPosition, stoichCounts,
 } from './utils/chemUtils.js'
 import TopLeftPanel from './components/TopLeftPanel.jsx'
 import BottomLeftPanel from './components/BottomLeftPanel.jsx'
@@ -21,16 +22,16 @@ export default function App() {
     c2cation: null, c2anion: null,
   })
 
-  // Master list of added ions: { id, ionKey, symbol, symbolHTML, charge, color }
+  // Master ion list: { id, ionKey, symbol, symbolHTML, charge, color }
   const [addedIons, setAddedIons] = useState([])
 
   // Bottom-left positions: { [ionId]: { x, y } }
   const [leftPositions, setLeftPositions] = useState({})
 
-  // Bottom-right items: ion | molecule
+  // Bottom-right items
   const [rightItems, setRightItems] = useState([])
 
-  // State-of-matter selections for products
+  // State-of-matter for products
   const [productStates, setProductStates] = useState({})
 
   const [submitResult, setSubmitResult] = useState(null)
@@ -40,7 +41,6 @@ export default function App() {
   const products = deriveProducts(rightItems)
   const topRightUnlocked = products.length > 0
 
-  // Auto-calculated reactant coefficients
   const c1Coeff = autoCoeff(addedIons, 'c1cation',
     reaction.compound1.cation.charge, reaction.compound1.anion.charge)
   const c2Coeff = autoCoeff(addedIons, 'c2cation',
@@ -49,156 +49,194 @@ export default function App() {
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   function handleSelectCharge(ionKey, charge) {
-    setSelectedCharges((prev) => ({ ...prev, [ionKey]: charge }))
+    setSelectedCharges(prev => ({ ...prev, [ionKey]: charge }))
     setSubmitResult(null)
   }
 
-  function handleAddIon(ionKey, ionData) {
-    const id = uid()
-    const newIon = { id, ionKey, ...ionData }
+  /**
+   * Add one full formula unit of a compound to both bottom panels.
+   * Uses correct stoich counts from the compound definition, but
+   * applies the student's selected charges.
+   */
+  function handleAddCompound(compoundKey) {
+    const compound = reaction[compoundKey]
+    const isC1 = compoundKey === 'compound1'
+    const cationKey = isC1 ? 'c1cation' : 'c2cation'
+    const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
 
-    // Calculate grouped grid position for bottom-left
-    const leftPos = gridPosition(ionKey, addedIons)
-    // Offset slightly for bottom-right so they don't perfectly overlap
-    const rightPos = { x: leftPos.x + 12, y: leftPos.y + 10 }
+    const catCharge = selectedCharges[cationKey]
+    const aniCharge = selectedCharges[anionKey]
+    if (catCharge === null || aniCharge === null) return
 
-    setAddedIons((prev) => [...prev, newIon])
-    setLeftPositions((prev) => ({ ...prev, [id]: leftPos }))
-    setRightItems((prev) => [
-      ...prev,
-      { id, kind: 'ion', x: rightPos.x, y: rightPos.y, ...ionData },
+    const catColor = getIonColor(catCharge)
+    const aniColor = getIonColor(aniCharge)
+
+    const { cation: catStoich, anion: aniStoich } =
+      stoichCounts(compound.cation.charge, compound.anion.charge)
+
+    // Build list of individual ions to add (cations then anions)
+    const templates = [
+      ...Array(catStoich).fill(null).map(() => ({
+        ionKey: cationKey,
+        symbol: compound.cation.symbol,
+        symbolHTML: compound.cation.symbolHTML,
+        charge: catCharge,
+        color: catColor,
+      })),
+      ...Array(aniStoich).fill(null).map(() => ({
+        ionKey: anionKey,
+        symbol: compound.anion.symbol,
+        symbolHTML: compound.anion.symbolHTML,
+        charge: aniCharge,
+        color: aniColor,
+      })),
+    ]
+
+    const newIons = []
+    const newLeftPos = {}
+    const newRight = []
+    const workingIons = [...addedIons]
+
+    for (const tmpl of templates) {
+      const id = uid()
+      const ion = { id, ...tmpl }
+      const lp = gridPosition(ion.ionKey, workingIons)
+      const rp = { x: lp.x + 14, y: lp.y + 12 }
+      newIons.push(ion)
+      newLeftPos[id] = lp
+      newRight.push({ id, kind: 'ion', x: rp.x, y: rp.y, ...tmpl })
+      workingIons.push(ion)
+    }
+
+    setAddedIons(prev => [...prev, ...newIons])
+    setLeftPositions(prev => ({ ...prev, ...newLeftPos }))
+    setRightItems(prev => [...prev, ...newRight])
+    setSubmitResult(null)
+  }
+
+  /**
+   * Remove the most recently added formula unit of a compound.
+   */
+  function handleRemoveCompound(compoundKey) {
+    const compound = reaction[compoundKey]
+    const isC1 = compoundKey === 'compound1'
+    const cationKey = isC1 ? 'c1cation' : 'c2cation'
+    const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
+
+    const { cation: catStoich, anion: aniStoich } =
+      stoichCounts(compound.cation.charge, compound.anion.charge)
+
+    const cations = addedIons.filter(i => i.ionKey === cationKey)
+    const anions  = addedIons.filter(i => i.ionKey === anionKey)
+
+    if (cations.length < catStoich || anions.length < aniStoich) return
+
+    const toRemove = new Set([
+      ...cations.slice(-catStoich).map(i => i.id),
+      ...anions.slice(-aniStoich).map(i => i.id),
     ])
-    setSubmitResult(null)
-  }
 
-  function handleRemoveIon(ionKey) {
-    setAddedIons((prev) => {
-      const revIdx = [...prev].reverse().findIndex((i) => i.ionKey === ionKey)
-      if (revIdx === -1) return prev
-      const realIdx = prev.length - 1 - revIdx
-      const removed = prev[realIdx]
-      const next = [...prev]
-      next.splice(realIdx, 1)
+    setAddedIons(prev => prev.filter(i => !toRemove.has(i.id)))
 
-      setLeftPositions((lp) => {
-        const copy = { ...lp }
-        delete copy[removed.id]
-        return copy
-      })
+    setLeftPositions(prev => {
+      const copy = { ...prev }
+      toRemove.forEach(id => delete copy[id])
+      return copy
+    })
 
-      setRightItems((ri) => {
-        const newRi = []
-        for (const item of ri) {
-          if (item.kind === 'ion' && item.id === removed.id) {
-            // drop it
-          } else if (item.kind === 'molecule') {
-            const hasMember = item.members?.some((m) => m.id === removed.id)
-            if (hasMember) {
-              // Explode molecule, keep survivors
-              const survivors = item.members.filter((m) => m.id !== removed.id)
-              survivors.forEach((m, i) => {
-                newRi.push({
-                  id: m.id,
-                  kind: 'ion',
-                  x: item.x + (i - survivors.length / 2) * 70,
-                  y: item.y + i * 18,
-                  symbol: m.symbol,
-                  symbolHTML: m.symbolHTML,
-                  charge: m.charge,
-                  color: m.color,
-                })
-              })
-            } else {
-              newRi.push(item)
-            }
+    setRightItems(prev => {
+      const next = []
+      for (const item of prev) {
+        if (item.kind === 'ion' && toRemove.has(item.id)) {
+          // drop
+        } else if (item.kind === 'molecule') {
+          const removed = item.members.filter(m => toRemove.has(m.id))
+          if (removed.length > 0) {
+            const survivors = item.members.filter(m => !toRemove.has(m.id))
+            survivors.forEach((m, i) => next.push({
+              id: m.id, kind: 'ion',
+              x: item.x + (i - survivors.length / 2) * 70,
+              y: item.y + i * 18,
+              symbol: m.symbol, symbolHTML: m.symbolHTML,
+              charge: m.charge, color: m.color,
+            }))
           } else {
-            newRi.push(item)
+            next.push(item)
           }
+        } else {
+          next.push(item)
         }
-        return newRi
-      })
-
-      setSubmitResult(null)
+      }
       return next
     })
+
+    setSubmitResult(null)
   }
 
   // Bottom-left drag
-  const handleLeftMove = useCallback((id, x, y) => {
-    setLeftPositions((prev) => ({ ...prev, [id]: { x, y } }))
-  }, [])
+  function handleLeftMove(id, x, y) {
+    setLeftPositions(prev => ({ ...prev, [id]: { x, y } }))
+  }
 
   // Bottom-right drag
-  const handleRightMove = useCallback((id, x, y) => {
-    setRightItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, x, y } : item))
-    )
-  }, [])
+  function handleRightMove(id, x, y) {
+    setRightItems(prev => prev.map(item => item.id === id ? { ...item, x, y } : item))
+  }
 
-  // Bottom-right drop — check for snap-to-combine
-  const handleRightDrop = useCallback((droppedId, x, y) => {
-    setRightItems((prev) => {
-      const dropped = prev.find((i) => i.id === droppedId)
+  // Bottom-right drop — snap to combine
+  function handleRightDrop(droppedId, x, y) {
+    setRightItems(prev => {
+      const dropped = prev.find(i => i.id === droppedId)
       if (!dropped) return prev
 
-      const target = prev.find((item) => {
-        if (item.id === droppedId) return false
-        return dist(x, y, item.x, item.y) < SNAP_DISTANCE
-      })
+      const target = prev.find(item =>
+        item.id !== droppedId && dist(x, y, item.x, item.y) < SNAP_DISTANCE
+      )
 
       if (!target) {
-        return prev.map((i) => (i.id === droppedId ? { ...i, x, y } : i))
+        return prev.map(i => i.id === droppedId ? { ...i, x, y } : i)
       }
 
-      // Merge all members from both items
       const allMembers = [...getMembers(dropped), ...getMembers(target)]
       const { formulaHTML, netCharge, ions } = buildMoleculeFromMembers(allMembers)
 
       const newMolecule = {
-        id: uid(),
-        kind: 'molecule',
-        x: target.x,
-        y: target.y,
-        members: allMembers,
-        ions,
-        formulaHTML,
-        netCharge,
-        state: '',
+        id: uid(), kind: 'molecule',
+        x: target.x, y: target.y,
+        members: allMembers, ions,
+        formulaHTML, netCharge, state: '',
       }
 
       return [
-        ...prev.filter((i) => i.id !== droppedId && i.id !== target.id),
+        ...prev.filter(i => i.id !== droppedId && i.id !== target.id),
         newMolecule,
       ]
     })
     setSubmitResult(null)
-  }, [])
-
-  // Click on molecule → break apart into individual ions
-  const handleBreakMolecule = useCallback((molId) => {
-    setRightItems((prev) => {
-      const mol = prev.find((i) => i.id === molId)
-      if (!mol || mol.kind !== 'molecule') return prev
-      const freed = mol.members.map((m, i) => ({
-        id: m.id,
-        kind: 'ion',
-        x: mol.x + (i - (mol.members.length - 1) / 2) * 68,
-        y: mol.y + (i % 2 === 0 ? -20 : 20),
-        symbol: m.symbol,
-        symbolHTML: m.symbolHTML,
-        charge: m.charge,
-        color: m.color,
-      }))
-      return [...prev.filter((i) => i.id !== molId), ...freed]
-    })
-    setSubmitResult(null)
-  }, [])
-
-  function handleProductStateChange(formulaHTML, state) {
-    setProductStates((prev) => ({ ...prev, [formulaHTML]: state }))
   }
 
-  function handleReactionChange(idx) {
+  // Click molecule → break apart
+  function handleBreakMolecule(molId) {
+    setRightItems(prev => {
+      const mol = prev.find(i => i.id === molId)
+      if (!mol || mol.kind !== 'molecule') return prev
+      const freed = mol.members.map((m, i) => ({
+        id: m.id, kind: 'ion',
+        x: mol.x + (i - (mol.members.length - 1) / 2) * 68,
+        y: mol.y + (i % 2 === 0 ? -22 : 22),
+        symbol: m.symbol, symbolHTML: m.symbolHTML,
+        charge: m.charge, color: m.color,
+      }))
+      return [...prev.filter(i => i.id !== molId), ...freed]
+    })
+    setSubmitResult(null)
+  }
+
+  function handleProductStateChange(formulaHTML, state) {
+    setProductStates(prev => ({ ...prev, [formulaHTML]: state }))
+  }
+
+  function resetReaction(idx) {
     setReactionIdx(idx)
     setSelectedCharges({ c1cation: null, c1anion: null, c2cation: null, c2anion: null })
     setAddedIons([])
@@ -208,25 +246,27 @@ export default function App() {
     setSubmitResult(null)
   }
 
+  function handleNextReaction() {
+    resetReaction((reactionIdx + 1) % PRESET_REACTIONS.length)
+  }
+
   function handleSubmit() {
     const correct = reaction.correctProducts
     const corrCoeff = reaction.correctReactantCoeff
     const feedback = []
     let allGood = true
 
-    // Check auto-calculated reactant coefficients
     const rc1 = c1Coeff ?? 0
     const rc2 = c2Coeff ?? 0
     if (rc1 !== corrCoeff.c1 || rc2 !== corrCoeff.c2) {
       allGood = false
       feedback.push(
-        `Reactant coefficients should be ${corrCoeff.c1} and ${corrCoeff.c2} — adjust how many ions you add.`
+        `Reactant coefficients should be ${corrCoeff.c1} and ${corrCoeff.c2} — adjust how many formula units you add.`
       )
     }
 
-    // Check products
     for (const cp of correct) {
-      const found = products.find((p) => ionsMatch(p.ions, cp.ions))
+      const found = products.find(p => ionsMatch(p.ions, cp.ions))
       if (!found) {
         allGood = false
         feedback.push(`Missing a product — check your ion combinations.`)
@@ -234,9 +274,7 @@ export default function App() {
       }
       if (found.coefficient !== cp.coefficient) {
         allGood = false
-        feedback.push(
-          `A product's coefficient should be ${cp.coefficient} — try combining more molecules.`
-        )
+        feedback.push(`A product's coefficient should be ${cp.coefficient}.`)
       }
       const chosenState = productStates[found.formulaHTML] || ''
       if (chosenState !== cp.state) {
@@ -246,7 +284,7 @@ export default function App() {
     }
 
     for (const p of products) {
-      if (!correct.some((cp) => ionsMatch(p.ions, cp.ions))) {
+      if (!correct.some(cp => ionsMatch(p.ions, cp.ions))) {
         allGood = false
         feedback.push(`An unexpected product was formed — check your combinations.`)
       }
@@ -261,10 +299,7 @@ export default function App() {
         <h1>Replacement Reactions</h1>
         <div className="reaction-selector">
           <label>Reaction:</label>
-          <select
-            value={reactionIdx}
-            onChange={(e) => handleReactionChange(Number(e.target.value))}
-          >
+          <select value={reactionIdx} onChange={e => resetReaction(Number(e.target.value))}>
             {PRESET_REACTIONS.map((r, i) => (
               <option key={r.id} value={i}>Reaction {i + 1}</option>
             ))}
@@ -280,8 +315,8 @@ export default function App() {
           selectedCharges={selectedCharges}
           onSelectCharge={handleSelectCharge}
           addedIons={addedIons}
-          onAddIon={handleAddIon}
-          onRemoveIon={handleRemoveIon}
+          onAddCompound={handleAddCompound}
+          onRemoveCompound={handleRemoveCompound}
         />
 
         <div className="arrow-column">
@@ -299,6 +334,7 @@ export default function App() {
           productStates={productStates}
           onStateChange={handleProductStateChange}
           onSubmit={handleSubmit}
+          onNext={handleNextReaction}
           submitResult={submitResult}
         />
 
@@ -323,6 +359,6 @@ export default function App() {
 
 function ionsMatch(a, b) {
   if (!a || !b || a.length !== b.length) return false
-  const key = (ion) => `${ion.symbol}:${ion.charge}:${ion.count}`
+  const key = ion => `${ion.symbol}:${ion.charge}:${ion.count}`
   return [...a].map(key).sort().join('|') === [...b].map(key).sort().join('|')
 }

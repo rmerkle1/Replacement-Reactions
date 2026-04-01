@@ -148,10 +148,30 @@
   font-style: italic;
 }
 
-/* ── Top Left Panel ───────────────────────────────────────────────────────── */
+/* ── Top panels ───────────────────────────────────────────────────────────── */
 
 .top-left-panel  { grid-column: 1; grid-row: 1; }
 .top-right-panel { grid-column: 3; grid-row: 1; }
+
+/* Header row with label + action buttons (top right panel) */
+.panel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-action-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.panel-divider {
+  height: 1px;
+  background: #4f5b6f55;
+  margin: 0 -14px;
+}
 
 /* The main equation row: [compound block] + [compound block] */
 .reactants-equation-row,
@@ -251,34 +271,54 @@
 }
 .ion-charge-select:focus { outline: none; border-color: #00addb; }
 
-.ion-button-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.ion-box-btn {
-  flex: 1;
-  min-height: 30px;
-  min-width: 52px;
-  border: none;
-  border-radius: 7px;
-  color: #fff;
-  font-size: 0.88rem;
+/* Compound formula as an add button */
+.compound-add-btn {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
   font-family: 'Georgia', serif;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 3px 6px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  box-shadow: 0 2px 7px rgba(0,0,0,0.35);
-  transition: transform 0.1s, box-shadow 0.1s;
+  font-size: 1.15rem;
+  color: #c8d8f0;
+  padding: 3px 8px;
+  cursor: default;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
   white-space: nowrap;
 }
-.ion-box-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+.compound-add-btn .state { font-size: 0.75em; color: #4f5b6f; margin-left: 1px; }
+
+.compound-add-btn.ready {
+  cursor: pointer;
+  border-color: #fdb71466;
+  color: #e8f4ff;
 }
-.ion-box-btn:active { transform: translateY(0); }
+.compound-add-btn.ready:hover {
+  border-color: #fdb714;
+  background: rgba(253, 183, 20, 0.08);
+  box-shadow: 0 0 10px rgba(253, 183, 20, 0.25);
+  color: #fff;
+}
+.compound-add-btn.ready:active {
+  transform: scale(0.97);
+}
+.compound-add-btn.not-ready {
+  opacity: 0.55;
+}
+
+/* Small colored badge confirming ion selection */
+.ion-selected-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  min-height: 24px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+}
 
 .remove-btn {
   background: transparent;
@@ -414,6 +454,36 @@
 }
 .state-select:focus { outline: none; border-color: #00addb; }
 
+/* ── Tool buttons (Solubility Table, Next) ───────────────────────────────── */
+
+.tool-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: box-shadow 0.15s, transform 0.1s;
+  border: 1px solid;
+}
+.tool-btn:hover { transform: translateY(-1px); }
+.tool-btn:active { transform: translateY(0); }
+
+.solubility-btn {
+  background: rgba(116, 138, 197, 0.15);
+  border-color: #748ac5;
+  color: #a8bae8;
+}
+.solubility-btn:hover { box-shadow: 0 2px 8px rgba(116,138,197,0.35); }
+
+.next-btn {
+  background: rgba(23, 178, 158, 0.15);
+  border-color: #17b29e;
+  color: #70e8d8;
+}
+.next-btn:hover { box-shadow: 0 2px 8px rgba(23,178,158,0.35); }
+
 /* ── Submit area ──────────────────────────────────────────────────────────── */
 
 .submit-area {
@@ -467,3 +537,111 @@
   padding-left: 16px;
 }
 .submit-feedback li { margin-bottom: 2px; }
+
+/* ── Solubility Modal ─────────────────────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  background: #161c28;
+  border: 1px solid #4f5b6f;
+  border-radius: 14px;
+  width: min(680px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #0c1018;
+  border-bottom: 1px solid #4f5b6f55;
+  font-size: 0.95rem;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  color: #00addb;
+  font-family: 'Georgia', serif;
+  flex-shrink: 0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: 1px solid #4f5b6f;
+  border-radius: 5px;
+  color: #4f5b6f;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.modal-close-btn:hover { border-color: #e9177a; color: #e9177a; }
+
+.modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.solubility-section { display: flex; flex-direction: column; gap: 8px; }
+
+.sol-heading {
+  font-size: 0.78rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sol-heading.sol-soluble  { color: #85c441; }
+.sol-heading.sol-insoluble { color: #e9177a; }
+
+.sol-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: 'Georgia', serif;
+}
+.sol-table th {
+  background: #0c1018;
+  color: #748ac5;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #4f5b6f55;
+}
+.sol-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #4f5b6f22;
+  color: #c8d8f0;
+  vertical-align: top;
+}
+.sol-table tr:last-child td { border-bottom: none; }
+.sol-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+.sol-footnote {
+  font-size: 0.74rem;
+  color: #4f5b6f;
+  font-style: italic;
+  line-height: 1.5;
+  border-top: 1px solid #4f5b6f33;
+  padding-top: 10px;
+}
