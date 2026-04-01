@@ -1,17 +1,10 @@
 import { chargeOptions, ionDisplayHTML } from '../utils/chemUtils.js'
 import { getIonColor } from '../data/chemistry.js'
 
-const ION_KEYS = [
-  { key: 'c1cation', label: 'Cation 1', compoundKey: 'compound1', ionType: 'cation' },
-  { key: 'c1anion',  label: 'Anion 1',  compoundKey: 'compound1', ionType: 'anion'  },
-  { key: 'c2cation', label: 'Cation 2', compoundKey: 'compound2', ionType: 'cation' },
-  { key: 'c2anion',  label: 'Anion 2',  compoundKey: 'compound2', ionType: 'anion'  },
-]
-
 export default function TopLeftPanel({
   reaction,
-  reactantCoeff,
-  onCoeffChange,
+  c1Coeff,
+  c2Coeff,
   selectedCharges,
   onSelectCharge,
   addedIons,
@@ -20,105 +13,35 @@ export default function TopLeftPanel({
 }) {
   const { compound1, compound2 } = reaction
 
-  function renderCompound(compound, coeffKey) {
-    return (
-      <div className="compound-row">
-        <input
-          className="coeff-input"
-          type="number"
-          min="1"
-          max="9"
-          placeholder="1"
-          value={reactantCoeff[coeffKey]}
-          onChange={(e) => onCoeffChange(coeffKey, e.target.value)}
-        />
-        <span
-          className="compound-formula"
-          dangerouslySetInnerHTML={{ __html: compound.formulaHTML + `<span class="state">(${compound.state})</span>` }}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="panel top-left-panel">
       <div className="panel-label">Reactants</div>
 
-      {/* Compound display */}
-      <div className="compounds-display">
-        {renderCompound(compound1, 'c1')}
-        <span className="plus-sign">+</span>
-        {renderCompound(compound2, 'c2')}
-      </div>
-
-      {/* Ion selector grid */}
-      <div className="ion-selector-grid">
-        {ION_KEYS.map(({ key, label, compoundKey, ionType }) => {
-          const compound = reaction[compoundKey]
-          const ion = compound[ionType]
-          const isAnion = ionType === 'anion'
-          const options = chargeOptions(ion.symbolHTML, isAnion)
-          const selectedCharge = selectedCharges[key]
-          const hasSelection = selectedCharge !== null
-          const color = hasSelection ? getIonColor(selectedCharge) : null
-          const ionDisplayHtml = hasSelection
-            ? ionDisplayHTML(ion.symbolHTML, selectedCharge)
-            : null
-
-          const countAdded = addedIons.filter((i) => i.ionKey === key).length
-
-          return (
-            <div key={key} className="ion-selector-cell">
-              <div className="ion-selector-label">{label}</div>
-              <select
-                className="ion-charge-select"
-                value={selectedCharge ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? null : Number(e.target.value)
-                  onSelectCharge(key, val)
-                }}
-              >
-                <option value="">— select —</option>
-                {options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {/* Stripping HTML for option text — use label fallback */}
-                    {stripHTML(opt.html)}
-                  </option>
-                ))}
-              </select>
-
-              {hasSelection && (
-                <div className="ion-button-row">
-                  <button
-                    className="ion-box-btn"
-                    style={{ backgroundColor: color, borderColor: darken(color) }}
-                    title="Click to add this ion to the workspace"
-                    onClick={() =>
-                      onAddIon(key, {
-                        symbol: ion.symbol,
-                        symbolHTML: ion.symbolHTML,
-                        charge: selectedCharge,
-                        color,
-                      })
-                    }
-                    dangerouslySetInnerHTML={{ __html: ionDisplayHtml }}
-                  />
-                  <button
-                    className="remove-btn"
-                    disabled={countAdded === 0}
-                    onClick={() => onRemoveIon(key)}
-                    title="Remove last added ion"
-                  >
-                    ✕
-                  </button>
-                  {countAdded > 0 && (
-                    <span className="ion-count">×{countAdded}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
+      {/* Equation row: compound block + plus + compound block */}
+      <div className="reactants-equation-row">
+        <CompoundBlock
+          compound={compound1}
+          coeff={c1Coeff}
+          cationKey="c1cation"
+          anionKey="c1anion"
+          selectedCharges={selectedCharges}
+          onSelectCharge={onSelectCharge}
+          addedIons={addedIons}
+          onAddIon={onAddIon}
+          onRemoveIon={onRemoveIon}
+        />
+        <span className="eq-plus">+</span>
+        <CompoundBlock
+          compound={compound2}
+          coeff={c2Coeff}
+          cationKey="c2cation"
+          anionKey="c2anion"
+          selectedCharges={selectedCharges}
+          onSelectCharge={onSelectCharge}
+          addedIons={addedIons}
+          onAddIon={onAddIon}
+          onRemoveIon={onRemoveIon}
+        />
       </div>
 
       <p className="hint-text">
@@ -128,11 +51,110 @@ export default function TopLeftPanel({
   )
 }
 
-function stripHTML(html) {
-  return html.replace(/<[^>]*>/g, '').replace('−', '-')
+function CompoundBlock({
+  compound, coeff,
+  cationKey, anionKey,
+  selectedCharges, onSelectCharge,
+  addedIons, onAddIon, onRemoveIon,
+}) {
+  return (
+    <div className="compound-block">
+      {/* Formula row */}
+      <div className="compound-formula-row">
+        <span className={`coeff-box ${coeff ? 'coeff-active' : ''}`}>
+          {coeff ?? ''}
+        </span>
+        <span
+          className="compound-formula"
+          dangerouslySetInnerHTML={{
+            __html: compound.formulaHTML + `<span class="state">(${compound.state})</span>`,
+          }}
+        />
+      </div>
+
+      {/* Ion selectors directly below — cation left, anion right */}
+      <div className="ion-pair-row">
+        <IonSelector
+          ion={compound.cation}
+          ionKey={cationKey}
+          isAnion={false}
+          selectedCharge={selectedCharges[cationKey]}
+          onSelectCharge={onSelectCharge}
+          addedIons={addedIons}
+          onAddIon={onAddIon}
+          onRemoveIon={onRemoveIon}
+        />
+        <IonSelector
+          ion={compound.anion}
+          ionKey={anionKey}
+          isAnion={true}
+          selectedCharge={selectedCharges[anionKey]}
+          onSelectCharge={onSelectCharge}
+          addedIons={addedIons}
+          onAddIon={onAddIon}
+          onRemoveIon={onRemoveIon}
+        />
+      </div>
+    </div>
+  )
 }
 
-function darken(hex) {
-  // Crude darkening — just add '99' alpha overlay effect via border
-  return hex
+function IonSelector({ ion, ionKey, isAnion, selectedCharge, onSelectCharge, addedIons, onAddIon, onRemoveIon }) {
+  const options = chargeOptions(ion.symbolHTML, isAnion)
+  const hasSelection = selectedCharge !== null
+  const color = hasSelection ? getIonColor(selectedCharge) : null
+  const ionHTML = hasSelection ? ionDisplayHTML(ion.symbolHTML, selectedCharge) : null
+  const countAdded = addedIons.filter((i) => i.ionKey === ionKey).length
+
+  return (
+    <div className="ion-selector-cell">
+      <select
+        className="ion-charge-select"
+        value={selectedCharge ?? ''}
+        onChange={(e) => {
+          const val = e.target.value === '' ? null : Number(e.target.value)
+          onSelectCharge(ionKey, val)
+        }}
+      >
+        <option value="">— select —</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {stripHTML(opt.html)}
+          </option>
+        ))}
+      </select>
+
+      {hasSelection && (
+        <div className="ion-button-row">
+          <button
+            className="ion-box-btn"
+            style={{ backgroundColor: color }}
+            title="Click to add this ion to the workspace"
+            onClick={() =>
+              onAddIon(ionKey, {
+                symbol: ion.symbol,
+                symbolHTML: ion.symbolHTML,
+                charge: selectedCharge,
+                color,
+              })
+            }
+            dangerouslySetInnerHTML={{ __html: ionHTML }}
+          />
+          <button
+            className="remove-btn"
+            disabled={countAdded === 0}
+            onClick={() => onRemoveIon(ionKey)}
+            title="Remove last added ion"
+          >✕</button>
+          {countAdded > 0 && (
+            <span className="ion-count">×{countAdded}</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function stripHTML(html) {
+  return html.replace(/<[^>]*>/g, '').replace(/−/g, '-')
 }

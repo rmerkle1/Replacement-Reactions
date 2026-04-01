@@ -1,7 +1,4 @@
-/**
- * Build an array of charge options for a dropdown.
- * isAnion: false → 0,+1,+2,+3,+4   true → 0,-1,-2,-3,-4
- */
+/** Build dropdown charge options for a given ion symbol */
 export function chargeOptions(symbolHTML, isAnion) {
   const values = isAnion ? [0, -1, -2, -3, -4] : [0, 1, 2, 3, 4]
   return values.map((charge) => ({
@@ -10,7 +7,7 @@ export function chargeOptions(symbolHTML, isAnion) {
   }))
 }
 
-/** Format an ion symbol + charge into HTML, e.g. "Na<sup>2+</sup>" */
+/** Format an ion with its charge as HTML */
 export function ionDisplayHTML(symbolHTML, charge) {
   if (charge === 0) return symbolHTML
   const sign = charge > 0 ? '+' : '−'
@@ -20,17 +17,44 @@ export function ionDisplayHTML(symbolHTML, charge) {
 }
 
 /**
- * Given an array of { symbolHTML, charge, count } ions,
- * compute the combined formula HTML and net charge.
+ * Get the flat members array from a right-panel item.
+ * Each member: { id, symbol, symbolHTML, charge, color }
  */
-export function buildMolecule(ions) {
-  const netCharge = ions.reduce((sum, ion) => sum + ion.charge * ion.count, 0)
+export function getMembers(item) {
+  if (item.kind === 'ion') {
+    return [{ id: item.id, symbol: item.symbol, symbolHTML: item.symbolHTML, charge: item.charge, color: item.color }]
+  }
+  return item.members
+}
+
+/**
+ * Build a molecule from a flat array of member ions.
+ * - Aggregates identical ions into counts
+ * - Sorts cations (positive charge) before anions (negative)
+ * - Handles polyatomic-ion parentheses
+ * Returns { formulaHTML, netCharge, ions (aggregated) }
+ */
+export function buildMoleculeFromMembers(members) {
+  // Aggregate
+  const ionMap = new Map()
+  for (const m of members) {
+    const key = `${m.symbol}:${m.charge}`
+    if (ionMap.has(key)) {
+      ionMap.get(key).count++
+    } else {
+      ionMap.set(key, { symbol: m.symbol, symbolHTML: m.symbolHTML, charge: m.charge, count: 1, color: m.color })
+    }
+  }
+
+  // Sort: cations first (highest positive charge first), then anions
+  const ions = Array.from(ionMap.values()).sort((a, b) => b.charge - a.charge)
+
+  const netCharge = members.reduce((sum, m) => sum + m.charge, 0)
 
   let formulaHTML = ''
   for (const ion of ions) {
-    // Polyatomic ions with count > 1 need parentheses if they contain sub/sup tags
-    const needsParens = ion.count > 1 && ion.symbolHTML.includes('<')
-    if (needsParens) {
+    const isPolyatomic = ion.symbolHTML.includes('<')
+    if (ion.count > 1 && isPolyatomic) {
       formulaHTML += `(${ion.symbolHTML})<sub>${ion.count}</sub>`
     } else if (ion.count > 1) {
       formulaHTML += `${ion.symbolHTML}<sub>${ion.count}</sub>`
@@ -46,74 +70,88 @@ export function buildMolecule(ions) {
     formulaHTML += `<sup>${sup}</sup>`
   }
 
-  return { formulaHTML, netCharge }
+  return { formulaHTML, netCharge, ions }
 }
 
-/**
- * Merge the ions from two right-panel items into a single molecule.
- * Each item is either { kind:'ion', symbol, symbolHTML, charge }
- * or { kind:'molecule', ions:[{symbol,symbolHTML,charge,count}] }
- */
-export function mergeItems(itemA, itemB) {
-  const ionsA = flattenItem(itemA)
-  const ionsB = flattenItem(itemB)
-  const merged = [...ionsA]
-
-  for (const ion of ionsB) {
-    const existing = merged.find(
-      (i) => i.symbol === ion.symbol && i.charge === ion.charge
-    )
-    if (existing) {
-      existing.count += ion.count
-    } else {
-      merged.push({ ...ion })
-    }
-  }
-
-  return merged
-}
-
-function flattenItem(item) {
-  if (item.kind === 'ion') {
-    return [{ symbol: item.symbol, symbolHTML: item.symbolHTML, charge: item.charge, count: 1 }]
-  }
-  return item.ions.map((ion) => ({ ...ion }))
-}
-
-/** Generate a unique id */
+/** Unique id generator */
 let _counter = 0
 export function uid() {
-  return `ion_${++_counter}_${Math.random().toString(36).slice(2, 7)}`
+  return `ion_${++_counter}_${Math.random().toString(36).slice(2, 6)}`
 }
 
-/** Distance between two points */
+/** Euclidean distance */
 export function dist(x1, y1, x2, y2) {
   return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 }
 
 /**
- * Derive top-right product list from the right-panel items.
- * Groups identical molecules (same formula) and counts them.
+ * Derive the top-right product list from right-panel items.
+ * Groups identical molecules (same formulaHTML) and counts them.
  */
 export function deriveProducts(rightItems) {
-  const molecules = rightItems.filter((item) => item.kind === 'molecule')
   const map = new Map()
-
-  for (const mol of molecules) {
-    const key = mol.formulaHTML
+  for (const item of rightItems) {
+    if (item.kind !== 'molecule') continue
+    const key = item.formulaHTML
     if (map.has(key)) {
       map.get(key).coefficient += 1
     } else {
       map.set(key, {
-        formulaHTML: mol.formulaHTML,
-        netCharge: mol.netCharge,
-        ions: mol.ions,
+        formulaHTML: item.formulaHTML,
+        netCharge: item.netCharge,
+        ions: item.ions,
         coefficient: 1,
-        state: mol.state || '',
-        id: mol.id,
+        state: '',
+        id: item.id,
       })
     }
   }
-
   return Array.from(map.values())
+}
+
+/** GCD and stoichiometric count helpers */
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b) }
+
+/**
+ * Given the charges of a compound's cation and anion, return
+ * how many of each appear per formula unit.
+ * e.g. Pb2+ and NO3-  →  { cation: 1, anion: 2 }
+ *      Na+  and SO42- →  { cation: 2, anion: 1 }
+ */
+export function stoichCounts(cationCharge, anionCharge) {
+  const c = Math.abs(cationCharge)
+  const a = Math.abs(anionCharge)
+  const g = gcd(a, c)
+  return { cation: a / g, anion: c / g }
+}
+
+/**
+ * Auto-calculate a reactant coefficient from how many cation ions have been added.
+ * coeff = count_of_cation / stoich_cation_per_formula
+ */
+export function autoCoeff(addedIons, cationKey, cationCharge, anionCharge) {
+  const count = addedIons.filter((i) => i.ionKey === cationKey).length
+  if (count === 0) return null
+  const { cation } = stoichCounts(cationCharge, anionCharge)
+  const val = count / cation
+  return Number.isInteger(val) ? val : Math.round(val * 10) / 10
+}
+
+/**
+ * Grid position for bottom-left panel.
+ * Compound-1 ions go on the left half; compound-2 on the right half.
+ */
+export function gridPosition(ionKey, existingIons) {
+  const isComp1 = ionKey.startsWith('c1')
+  const sameGroup = existingIons.filter((i) =>
+    i.ionKey.startsWith(isComp1 ? 'c1' : 'c2')
+  )
+  const idx = sameGroup.length
+  const col = idx % 3
+  const row = Math.floor(idx / 3)
+  const baseX = isComp1 ? 48 : 310
+  return {
+    x: baseX + col * 80,
+    y: 50 + row * 70,
+  }
 }

@@ -1,35 +1,45 @@
-// Color palette for ions by charge
+// Brand color palette
+export const PALETTE = {
+  teal:   '#17b29e',
+  purple: '#748ac5',
+  yellow: '#fdb714',
+  blue:   '#00addb',
+  green:  '#85c441',
+  pink:   '#e9177a',
+  grey:   '#4f5b6f',
+}
+
+// Ion colors by charge value
 export const ION_COLORS = {
   cation: {
-    1: '#e84393', // pink-magenta
-    2: '#e67e22', // orange
-    3: '#9b59b6', // purple
-    4: '#c0392b', // dark red
+    1: '#00addb', // blue
+    2: '#85c441', // green
+    3: '#fdb714', // yellow
+    4: '#17b29e', // teal
   },
   anion: {
-    '-1': '#2980b9', // blue
-    '-2': '#27ae60', // green
-    '-3': '#16a085', // teal
-    '-4': '#8e44ad', // violet
+    '-1': '#e9177a', // pink
+    '-2': '#748ac5', // purple
+    '-3': '#4f5b6f', // grey
+    '-4': '#17b29e', // teal (reuse)
   },
-  neutral: '#95a5a6',
+  neutral: '#4f5b6f',
 }
 
 export function getIonColor(charge) {
-  if (charge > 0) return ION_COLORS.cation[charge] || ION_COLORS.cation[1]
-  if (charge < 0) return ION_COLORS.anion[charge] || ION_COLORS.anion['-1']
+  if (charge > 0) return ION_COLORS.cation[charge] ?? ION_COLORS.cation[1]
+  if (charge < 0) return ION_COLORS.anion[charge] ?? ION_COLORS.anion['-1']
   return ION_COLORS.neutral
 }
 
 // Preset double-replacement reactions
-// formulaHTML uses HTML sub/sup tags for display
 export const PRESET_REACTIONS = [
   {
     id: 'r1',
     compound1: {
       formulaHTML: 'NaI',
-      cation: { symbol: 'Na', symbolHTML: 'Na', charge: 1 },
-      anion:  { symbol: 'I',  symbolHTML: 'I',  charge: -1 },
+      cation: { symbol: 'Na',  symbolHTML: 'Na',               charge: 1  },
+      anion:  { symbol: 'I',   symbolHTML: 'I',                charge: -1 },
       state: 'aq',
     },
     compound2: {
@@ -70,8 +80,8 @@ export const PRESET_REACTIONS = [
     },
     compound2: {
       formulaHTML: 'BaCl<sub>2</sub>',
-      cation: { symbol: 'Ba',  symbolHTML: 'Ba',  charge: 2  },
-      anion:  { symbol: 'Cl',  symbolHTML: 'Cl',  charge: -1 },
+      cation: { symbol: 'Ba', symbolHTML: 'Ba', charge: 2  },
+      anion:  { symbol: 'Cl', symbolHTML: 'Cl', charge: -1 },
       state: 'aq',
     },
     correctReactantCoeff: { c1: 1, c2: 1 },

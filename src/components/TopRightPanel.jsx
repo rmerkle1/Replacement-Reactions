@@ -11,20 +11,23 @@ export default function TopRightPanel({
   return (
     <div className={`panel top-right-panel ${!unlocked ? 'locked' : ''}`}>
       <div className="panel-label">Products</div>
+
       {!unlocked && (
         <div className="locked-overlay">
           <span>Combine ions in the product panel to see molecules here</span>
         </div>
       )}
 
-      <div className="products-list">
+      {/* Inline product equation — matches reactant style */}
+      <div className="products-equation-row">
         {products.map((product, i) => (
-          <div key={product.formulaHTML + i} className="product-row">
-            {product.coefficient > 1 && (
-              <span className="product-coeff">{product.coefficient}</span>
-            )}
+          <span key={product.formulaHTML + i} className="product-inline-group">
+            {i > 0 && <span className="eq-plus">+</span>}
+            <span className={`coeff-box ${product.coefficient > 1 ? 'coeff-active' : ''}`}>
+              {product.coefficient > 1 ? product.coefficient : ''}
+            </span>
             <span
-              className="product-formula"
+              className="compound-formula"
               dangerouslySetInnerHTML={{ __html: product.formulaHTML }}
             />
             <select
@@ -36,7 +39,7 @@ export default function TopRightPanel({
                 <option key={s} value={s}>{s === '' ? '(state)' : `(${s})`}</option>
               ))}
             </select>
-          </div>
+          </span>
         ))}
       </div>
 
@@ -50,14 +53,14 @@ export default function TopRightPanel({
               {submitResult.correct ? (
                 <span>✓ Correct! The equation is balanced.</span>
               ) : (
-                <div>
-                  <strong>Not quite. Check the following:</strong>
+                <>
+                  <strong>Not quite — check the following:</strong>
                   <ul>
                     {submitResult.feedback.map((msg, i) => (
                       <li key={i}>{msg}</li>
                     ))}
                   </ul>
-                </div>
+                </>
               )}
             </div>
           )}
@@ -65,7 +68,7 @@ export default function TopRightPanel({
       )}
 
       <p className="hint-text">
-        ④ Molecules formed in the product panel appear here. Select their state of matter, then check your answer.
+        ④ Molecules formed below appear here. Select each state of matter, then check your answer.
       </p>
     </div>
   )
