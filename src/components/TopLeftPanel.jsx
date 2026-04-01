@@ -1,5 +1,5 @@
 import { chargeOptions, ionDisplayHTML } from '../utils/chemUtils.js'
-import { getIonColor } from '../data/chemistry.js'
+import { SLOT_COLORS } from '../data/chemistry.js'
 
 export default function TopLeftPanel({
   reaction,
@@ -109,7 +109,7 @@ function CompoundBlock({
 function IonSelector({ ion, ionKey, isAnion, selectedCharge, onSelectCharge }) {
   const options = chargeOptions(ion.symbolHTML, isAnion)
   const hasSelection = selectedCharge !== null
-  const color = hasSelection ? getIonColor(selectedCharge) : null
+  const color = SLOT_COLORS[ionKey]
   const ionHtml = hasSelection ? ionDisplayHTML(ion.symbolHTML, selectedCharge) : null
 
   return (

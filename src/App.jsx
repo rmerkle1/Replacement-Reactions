@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PRESET_REACTIONS } from './data/chemistry.js'
-import { getIonColor } from './data/chemistry.js'
+import { SLOT_COLORS } from './data/chemistry.js'
 import {
   uid, deriveProducts, buildMoleculeFromMembers, getMembers,
   dist, autoCoeff, gridPosition, stoichCounts,
@@ -68,8 +68,8 @@ export default function App() {
     const aniCharge = selectedCharges[anionKey]
     if (catCharge === null || aniCharge === null) return
 
-    const catColor = getIonColor(catCharge)
-    const aniColor = getIonColor(aniCharge)
+    const catColor = SLOT_COLORS[cationKey]
+    const aniColor = SLOT_COLORS[anionKey]
 
     const { cation: catStoich, anion: aniStoich } =
       stoichCounts(compound.cation.charge, compound.anion.charge)

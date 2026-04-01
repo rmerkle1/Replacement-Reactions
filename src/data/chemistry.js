@@ -9,7 +9,16 @@ export const PALETTE = {
   grey:   '#4f5b6f',
 }
 
-// Ion colors by charge value
+// Per-slot colors — ensures all 4 ions in a reaction are always visually distinct
+// regardless of whether two anions (or two cations) share the same charge.
+export const SLOT_COLORS = {
+  c1cation: '#00addb', // blue
+  c1anion:  '#e9177a', // pink
+  c2cation: '#85c441', // green
+  c2anion:  '#748ac5', // purple
+}
+
+// Ion colors by charge value (kept as fallback)
 export const ION_COLORS = {
   cation: {
     1: '#00addb', // blue
