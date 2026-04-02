@@ -60,9 +60,9 @@
 .app-grid {
   display: grid;
   grid-template-columns: 1fr 52px 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 10px;
-  padding: 10px;
+  grid-template-rows: 1.1fr 0.9fr;
+  gap: 7px;
+  padding: 8px;
   flex: 1;
   min-height: 0;
 }
@@ -99,7 +99,7 @@
   background: #161c28;
   border: 1px solid #4f5b6f;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -644,4 +644,283 @@
   line-height: 1.5;
   border-top: 1px solid #4f5b6f33;
   padding-top: 10px;
+}
+
+/* ── Mode Toggle ──────────────────────────────────────────────────────────── */
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #4f5b6f;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: #4f5b6f;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn.active {
+  background: #00addb;
+  color: #fff;
+}
+
+.mode-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+  color: #c8d8f0;
+}
+
+.mode-label {
+  font-size: 0.8rem;
+  color: #4f5b6f;
+  padding: 0 10px 0 4px;
+  font-family: 'Georgia', serif;
+}
+
+/* ── Solid Metal Ion ──────────────────────────────────────────────────────── */
+
+.solid-metal {
+  border: 2px solid #7a8aaa;
+  font-style: italic;
+}
+
+.solid-state-label {
+  font-size: 0.7em;
+  margin-left: 2px;
+  font-style: normal;
+}
+
+/* ── No Reaction Button ───────────────────────────────────────────────────── */
+
+.nr-btn {
+  padding: 7px 14px;
+}
+
+.submit-or {
+  font-size: 0.78rem;
+  color: #8a9baa;
+  font-style: italic;
+  user-select: none;
+}
+
+.submit-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Static state label (solid metals) ───────────────────────────────────── */
+
+.static-state {
+  font-size: 0.78rem;
+  color: #748ac5;
+  font-family: 'Georgia', serif;
+  padding: 3px 5px;
+}
+
+/* ── Activity Series Modal ────────────────────────────────────────────────── */
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.activity-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 3px solid #4f5b6f44;
+  padding-left: 10px;
+  margin-bottom: 4px;
+}
+
+.activity-group-label {
+  font-size: 0.68rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.activity-group-label.react-water { color: #00addb; }
+.activity-group-label.react-acid  { color: #85c441; }
+.activity-group-label.no-react    { color: #e9177a; }
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.activity-reference {
+  border-left: 3px solid #fdb71466;
+  padding-left: 10px;
+  margin: 4px 0;
+}
+
+.activity-metal {
+  font-family: 'Georgia', serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #c8d8f0;
+  min-width: 36px;
+}
+
+.activity-h2 {
+  color: #fdb714;
+}
+
+.activity-note {
+  font-size: 0.74rem;
+  color: #4f5b6f;
+  font-style: italic;
+}
+
+/* ── Tutorial modal ──────────────────────────────────────────────────────── */
+
+.tutorial-modal {
+  background: #1a2535;
+  border: 1px solid #2e3f58;
+  border-radius: 14px;
+  width: min(680px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+
+.tutorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid #2e3f58;
+  flex-shrink: 0;
+}
+
+.tutorial-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #17b29e;
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.03em;
+}
+
+.tutorial-body {
+  overflow-y: auto;
+  padding: 6px 22px 10px;
+  flex: 1;
+}
+
+.tutorial-steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 0;
+}
+
+.tutorial-steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #1e2e42;
+}
+
+.tutorial-steps > li:last-child {
+  border-bottom: none;
+}
+
+.tutorial-steps > li::before {
+  content: counter(step);
+  grid-row: 1 / 3;
+  width: 2rem;
+  height: 2rem;
+  background: #17b29e22;
+  border: 1px solid #17b29e66;
+  border-radius: 50%;
+  color: #17b29e;
+  font-weight: bold;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tutorial-step-title {
+  font-weight: bold;
+  font-size: 0.88rem;
+  color: #c8dff0;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+
+.tutorial-steps p {
+  margin: 0;
+  font-size: 0.81rem;
+  color: #8a9baa;
+  line-height: 1.6;
+}
+
+.tutorial-steps strong {
+  color: #c8dff0;
+}
+
+.tutorial-steps em {
+  color: #fdb714;
+  font-style: normal;
+}
+
+.tutorial-footer {
+  padding: 14px 22px 18px;
+  border-top: 1px solid #2e3f58;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tutorial-footer .submit-btn {
+  padding: 9px 32px;
+  font-size: 0.92rem;
+}
+
+/* ── Tutorial help button (header) ───────────────────────────────────────── */
+
+.tutorial-help-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(23,178,158,0.12);
+  border: 1px solid #17b29e66;
+  color: #17b29e;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-left: auto;
+}
+
+.tutorial-help-btn:hover {
+  background: rgba(23,178,158,0.25);
+  box-shadow: 0 0 8px rgba(23,178,158,0.35);
 }

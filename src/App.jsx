@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PRESET_REACTIONS } from './data/chemistry.js'
+import { PRESET_REACTIONS, SINGLE_REACTIONS } from './data/chemistry.js'
 import { SLOT_COLORS } from './data/chemistry.js'
 import {
   uid, deriveProducts, buildMoleculeFromMembers, getMembers,
@@ -9,13 +9,22 @@ import TopLeftPanel from './components/TopLeftPanel.jsx'
 import BottomLeftPanel from './components/BottomLeftPanel.jsx'
 import BottomRightPanel from './components/BottomRightPanel.jsx'
 import TopRightPanel from './components/TopRightPanel.jsx'
+import TutorialModal from './components/TutorialModal.jsx'
 import './App.css'
 
 const SNAP_DISTANCE = 64
 
 export default function App() {
-  const [reactionIdx, setReactionIdx] = useState(0)
-  const reaction = PRESET_REACTIONS[reactionIdx]
+  const [showTutorial, setShowTutorial] = useState(
+    () => !localStorage.getItem('tutorialSeen')
+  )
+  const [reactionType, setReactionType] = useState('double') // 'single' | 'double'
+  const [singleIdx, setSingleIdx] = useState(0)
+  const [doubleIdx, setDoubleIdx] = useState(0)
+
+  const reactionIdx = reactionType === 'double' ? doubleIdx : singleIdx
+  const reactionList = reactionType === 'double' ? PRESET_REACTIONS : SINGLE_REACTIONS
+  const reaction = reactionList[reactionIdx]
 
   const [selectedCharges, setSelectedCharges] = useState({
     c1cation: null, c1anion: null,
@@ -41,10 +50,21 @@ export default function App() {
   const products = deriveProducts(rightItems)
   const topRightUnlocked = products.length > 0
 
-  const c1Coeff = autoCoeff(addedIons, 'c1cation',
-    reaction.compound1.cation.charge, reaction.compound1.anion.charge)
-  const c2Coeff = autoCoeff(addedIons, 'c2cation',
-    reaction.compound2.cation.charge, reaction.compound2.anion.charge)
+  // Coefficients — mode-aware
+  let c1Coeff = null
+  let c2Coeff = null
+  let metalCoeff = null
+
+  if (reactionType === 'double') {
+    c1Coeff = autoCoeff(addedIons, 'c1cation',
+      reaction.compound1.cation.charge, reaction.compound1.anion.charge)
+    c2Coeff = autoCoeff(addedIons, 'c2cation',
+      reaction.compound2.cation.charge, reaction.compound2.anion.charge)
+  } else {
+    metalCoeff = addedIons.filter(i => i.ionKey === 'metalion').length || null
+    c2Coeff = autoCoeff(addedIons, 'saltcation',
+      reaction.salt.cation.charge, reaction.salt.anion.charge)
+  }
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
@@ -55,87 +75,183 @@ export default function App() {
 
   /**
    * Add one full formula unit of a compound to both bottom panels.
-   * Uses correct stoich counts from the compound definition, but
-   * applies the student's selected charges.
+   * Mode-aware for single vs double replacement.
    */
   function handleAddCompound(compoundKey) {
-    const compound = reaction[compoundKey]
-    const isC1 = compoundKey === 'compound1'
-    const cationKey = isC1 ? 'c1cation' : 'c2cation'
-    const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
+    if (reactionType === 'single') {
+      if (compoundKey === 'compound1') {
+        // Metal: add a single metal ion
+        const metalCharge = selectedCharges['metalcharge']
+        if (metalCharge === null) return
+        const id = uid()
+        const ion = {
+          id,
+          ionKey: 'metalion',
+          symbol: reaction.metal.symbol,
+          symbolHTML: reaction.metal.symbolHTML,
+          charge: metalCharge,
+          color: SLOT_COLORS.metalion,
+        }
+        const lp = gridPosition('metalion', addedIons)
+        const rp = { x: lp.x + 14, y: lp.y + 12 }
+        setAddedIons(prev => [...prev, ion])
+        setLeftPositions(prev => ({ ...prev, [id]: lp }))
+        setRightItems(prev => [...prev, { id, kind: 'ion', x: rp.x, y: rp.y, ionKey: 'metalion', symbol: ion.symbol, symbolHTML: ion.symbolHTML, charge: ion.charge, color: ion.color }])
+        setSubmitResult(null)
+      } else {
+        // Salt (compound2): use saltcation/saltanion keys
+        const catCharge = selectedCharges['c2cation']
+        const aniCharge = selectedCharges['c2anion']
+        if (catCharge === null || aniCharge === null) return
 
-    const catCharge = selectedCharges[cationKey]
-    const aniCharge = selectedCharges[anionKey]
-    if (catCharge === null || aniCharge === null) return
+        const salt = reaction.salt
+        const { cation: catStoich, anion: aniStoich } = stoichCounts(salt.cation.charge, salt.anion.charge)
 
-    const catColor = SLOT_COLORS[cationKey]
-    const aniColor = SLOT_COLORS[anionKey]
+        const templates = [
+          ...Array(catStoich).fill(null).map(() => ({
+            ionKey: 'saltcation',
+            symbol: salt.cation.symbol,
+            symbolHTML: salt.cation.symbolHTML,
+            charge: catCharge,
+            color: SLOT_COLORS.saltcation,
+          })),
+          ...Array(aniStoich).fill(null).map(() => ({
+            ionKey: 'saltanion',
+            symbol: salt.anion.symbol,
+            symbolHTML: salt.anion.symbolHTML,
+            charge: aniCharge,
+            color: SLOT_COLORS.saltanion,
+          })),
+        ]
 
-    const { cation: catStoich, anion: aniStoich } =
-      stoichCounts(compound.cation.charge, compound.anion.charge)
+        const newIons = []
+        const newLeftPos = {}
+        const newRight = []
+        const workingIons = [...addedIons]
 
-    // Build list of individual ions to add (cations then anions)
-    const templates = [
-      ...Array(catStoich).fill(null).map(() => ({
-        ionKey: cationKey,
-        symbol: compound.cation.symbol,
-        symbolHTML: compound.cation.symbolHTML,
-        charge: catCharge,
-        color: catColor,
-      })),
-      ...Array(aniStoich).fill(null).map(() => ({
-        ionKey: anionKey,
-        symbol: compound.anion.symbol,
-        symbolHTML: compound.anion.symbolHTML,
-        charge: aniCharge,
-        color: aniColor,
-      })),
-    ]
+        for (const tmpl of templates) {
+          const id = uid()
+          const ion = { id, ...tmpl }
+          const lp = gridPosition(ion.ionKey, workingIons)
+          const rp = { x: lp.x + 14, y: lp.y + 12 }
+          newIons.push(ion)
+          newLeftPos[id] = lp
+          newRight.push({ id, kind: 'ion', x: rp.x, y: rp.y, ...tmpl })
+          workingIons.push(ion)
+        }
 
-    const newIons = []
-    const newLeftPos = {}
-    const newRight = []
-    const workingIons = [...addedIons]
+        setAddedIons(prev => [...prev, ...newIons])
+        setLeftPositions(prev => ({ ...prev, ...newLeftPos }))
+        setRightItems(prev => [...prev, ...newRight])
+        setSubmitResult(null)
+      }
+    } else {
+      // Double replacement (original behavior)
+      const compound = reaction[compoundKey]
+      const isC1 = compoundKey === 'compound1'
+      const cationKey = isC1 ? 'c1cation' : 'c2cation'
+      const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
 
-    for (const tmpl of templates) {
-      const id = uid()
-      const ion = { id, ...tmpl }
-      const lp = gridPosition(ion.ionKey, workingIons)
-      const rp = { x: lp.x + 14, y: lp.y + 12 }
-      newIons.push(ion)
-      newLeftPos[id] = lp
-      newRight.push({ id, kind: 'ion', x: rp.x, y: rp.y, ...tmpl })
-      workingIons.push(ion)
+      const catCharge = selectedCharges[cationKey]
+      const aniCharge = selectedCharges[anionKey]
+      if (catCharge === null || aniCharge === null) return
+
+      const catColor = SLOT_COLORS[cationKey]
+      const aniColor = SLOT_COLORS[anionKey]
+
+      const { cation: catStoich, anion: aniStoich } =
+        stoichCounts(compound.cation.charge, compound.anion.charge)
+
+      const templates = [
+        ...Array(catStoich).fill(null).map(() => ({
+          ionKey: cationKey,
+          symbol: compound.cation.symbol,
+          symbolHTML: compound.cation.symbolHTML,
+          charge: catCharge,
+          color: catColor,
+        })),
+        ...Array(aniStoich).fill(null).map(() => ({
+          ionKey: anionKey,
+          symbol: compound.anion.symbol,
+          symbolHTML: compound.anion.symbolHTML,
+          charge: aniCharge,
+          color: aniColor,
+        })),
+      ]
+
+      const newIons = []
+      const newLeftPos = {}
+      const newRight = []
+      const workingIons = [...addedIons]
+
+      for (const tmpl of templates) {
+        const id = uid()
+        const ion = { id, ...tmpl }
+        const lp = gridPosition(ion.ionKey, workingIons)
+        const rp = { x: lp.x + 14, y: lp.y + 12 }
+        newIons.push(ion)
+        newLeftPos[id] = lp
+        newRight.push({ id, kind: 'ion', x: rp.x, y: rp.y, ...tmpl })
+        workingIons.push(ion)
+      }
+
+      setAddedIons(prev => [...prev, ...newIons])
+      setLeftPositions(prev => ({ ...prev, ...newLeftPos }))
+      setRightItems(prev => [...prev, ...newRight])
+      setSubmitResult(null)
     }
-
-    setAddedIons(prev => [...prev, ...newIons])
-    setLeftPositions(prev => ({ ...prev, ...newLeftPos }))
-    setRightItems(prev => [...prev, ...newRight])
-    setSubmitResult(null)
   }
 
   /**
    * Remove the most recently added formula unit of a compound.
+   * Mode-aware for single vs double replacement.
    */
   function handleRemoveCompound(compoundKey) {
-    const compound = reaction[compoundKey]
-    const isC1 = compoundKey === 'compound1'
-    const cationKey = isC1 ? 'c1cation' : 'c2cation'
-    const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
+    if (reactionType === 'single') {
+      if (compoundKey === 'compound1') {
+        // Remove last metalion
+        const metals = addedIons.filter(i => i.ionKey === 'metalion')
+        if (metals.length === 0) return
+        const toRemove = new Set([metals[metals.length - 1].id])
+        _removeIons(toRemove)
+      } else {
+        // Remove last salt formula unit (saltcation + stoich saltanion)
+        const salt = reaction.salt
+        const { cation: catStoich, anion: aniStoich } = stoichCounts(salt.cation.charge, salt.anion.charge)
+        const cations = addedIons.filter(i => i.ionKey === 'saltcation')
+        const anions  = addedIons.filter(i => i.ionKey === 'saltanion')
+        if (cations.length < catStoich || anions.length < aniStoich) return
+        const toRemove = new Set([
+          ...cations.slice(-catStoich).map(i => i.id),
+          ...anions.slice(-aniStoich).map(i => i.id),
+        ])
+        _removeIons(toRemove)
+      }
+    } else {
+      // Double replacement (original behavior)
+      const compound = reaction[compoundKey]
+      const isC1 = compoundKey === 'compound1'
+      const cationKey = isC1 ? 'c1cation' : 'c2cation'
+      const anionKey  = isC1 ? 'c1anion'  : 'c2anion'
 
-    const { cation: catStoich, anion: aniStoich } =
-      stoichCounts(compound.cation.charge, compound.anion.charge)
+      const { cation: catStoich, anion: aniStoich } =
+        stoichCounts(compound.cation.charge, compound.anion.charge)
 
-    const cations = addedIons.filter(i => i.ionKey === cationKey)
-    const anions  = addedIons.filter(i => i.ionKey === anionKey)
+      const cations = addedIons.filter(i => i.ionKey === cationKey)
+      const anions  = addedIons.filter(i => i.ionKey === anionKey)
 
-    if (cations.length < catStoich || anions.length < aniStoich) return
+      if (cations.length < catStoich || anions.length < aniStoich) return
 
-    const toRemove = new Set([
-      ...cations.slice(-catStoich).map(i => i.id),
-      ...anions.slice(-aniStoich).map(i => i.id),
-    ])
+      const toRemove = new Set([
+        ...cations.slice(-catStoich).map(i => i.id),
+        ...anions.slice(-aniStoich).map(i => i.id),
+      ])
+      _removeIons(toRemove)
+    }
+    setSubmitResult(null)
+  }
 
+  function _removeIons(toRemove) {
     setAddedIons(prev => prev.filter(i => !toRemove.has(i.id)))
 
     setLeftPositions(prev => {
@@ -169,8 +285,6 @@ export default function App() {
       }
       return next
     })
-
-    setSubmitResult(null)
   }
 
   // Bottom-left drag
@@ -207,10 +321,23 @@ export default function App() {
         formulaHTML, netCharge, state: '',
       }
 
-      return [
+      let updatedItems = [
         ...prev.filter(i => i.id !== droppedId && i.id !== target.id),
         newMolecule,
       ]
+
+      // In single replacement mode, auto-convert free saltcation ions to neutral solid state
+      // after a neutral molecule is formed
+      if (reactionType === 'single' && netCharge === 0) {
+        updatedItems = updatedItems.map(item => {
+          if (item.kind === 'ion' && item.ionKey === 'saltcation' && !item.isNeutralSolid) {
+            return { ...item, isNeutralSolid: true, charge: 0, color: '#4f5b6f' }
+          }
+          return item
+        })
+      }
+
+      return updatedItems
     })
     setSubmitResult(null)
   }
@@ -236,9 +363,36 @@ export default function App() {
     setProductStates(prev => ({ ...prev, [formulaHTML]: state }))
   }
 
+  function handleNoReaction() {
+    if (reaction.noReaction) {
+      setSubmitResult({ correct: true, feedback: [], wasNoReaction: true })
+    } else {
+      setSubmitResult({ correct: false, feedback: ['This reaction does occur — try completing it instead of selecting No Reaction.'] })
+    }
+  }
+
   function resetReaction(idx) {
-    setReactionIdx(idx)
-    setSelectedCharges({ c1cation: null, c1anion: null, c2cation: null, c2anion: null })
+    if (reactionType === 'double') {
+      setDoubleIdx(idx)
+      setSelectedCharges({ c1cation: null, c1anion: null, c2cation: null, c2anion: null })
+    } else {
+      setSingleIdx(idx)
+      setSelectedCharges({ metalcharge: null, c2cation: null, c2anion: null })
+    }
+    setAddedIons([])
+    setLeftPositions({})
+    setRightItems([])
+    setProductStates({})
+    setSubmitResult(null)
+  }
+
+  function handleModeSwitch(newMode) {
+    setReactionType(newMode)
+    if (newMode === 'double') {
+      setSelectedCharges({ c1cation: null, c1anion: null, c2cation: null, c2anion: null })
+    } else {
+      setSelectedCharges({ metalcharge: null, c2cation: null, c2anion: null })
+    }
     setAddedIons([])
     setLeftPositions({})
     setRightItems([])
@@ -247,7 +401,7 @@ export default function App() {
   }
 
   function handleNextReaction() {
-    resetReaction((reactionIdx + 1) % PRESET_REACTIONS.length)
+    resetReaction((reactionIdx + 1) % reactionList.length)
   }
 
   function handleSubmit() {
@@ -256,13 +410,30 @@ export default function App() {
     const feedback = []
     let allGood = true
 
-    const rc1 = c1Coeff ?? 0
-    const rc2 = c2Coeff ?? 0
-    if (rc1 !== corrCoeff.c1 || rc2 !== corrCoeff.c2) {
-      allGood = false
-      feedback.push(
-        `Reactant coefficients should be ${corrCoeff.c1} and ${corrCoeff.c2} — adjust how many formula units you add.`
-      )
+    // If this is a no-reaction case, tell the user to click No Reaction
+    if (reaction.noReaction) {
+      setSubmitResult({ correct: false, feedback: ['This reaction does not occur — click "No Reaction" instead.'] })
+      return
+    }
+
+    if (reactionType === 'double') {
+      const rc1 = c1Coeff ?? 0
+      const rc2 = c2Coeff ?? 0
+      if (rc1 !== corrCoeff.c1 || rc2 !== corrCoeff.c2) {
+        allGood = false
+        feedback.push(
+          `Reactant coefficients should be ${corrCoeff.c1} and ${corrCoeff.c2} — adjust how many formula units you add.`
+        )
+      }
+    } else {
+      const rm = metalCoeff ?? 0
+      const rs = c2Coeff ?? 0
+      if (rm !== corrCoeff.metal || rs !== corrCoeff.salt) {
+        allGood = false
+        feedback.push(
+          `Reactant coefficients should be ${corrCoeff.metal} and ${corrCoeff.salt} — adjust how many formula units you add.`
+        )
+      }
     }
 
     for (const cp of correct) {
@@ -276,10 +447,15 @@ export default function App() {
         allGood = false
         feedback.push(`A product's coefficient should be ${cp.coefficient}.`)
       }
-      const chosenState = productStates[found.formulaHTML] || ''
-      if (chosenState !== cp.state) {
-        allGood = false
-        feedback.push(`A product's state should be (${cp.state}).`)
+      // Solid metals always have state 's' — don't check productStates for them
+      if (cp.isSolidMetal) {
+        // state is always 's', no user input needed
+      } else {
+        const chosenState = productStates[found.formulaHTML] || ''
+        if (chosenState !== cp.state) {
+          allGood = false
+          feedback.push(`A product's state should be (${cp.state}).`)
+        }
       }
     }
 
@@ -293,14 +469,36 @@ export default function App() {
     setSubmitResult({ correct: allGood, feedback })
   }
 
+  function handleCloseTutorial() {
+    localStorage.setItem('tutorialSeen', '1')
+    setShowTutorial(false)
+  }
+
   return (
     <div className="app">
+      {showTutorial && <TutorialModal onClose={handleCloseTutorial} />}
       <header className="app-header">
         <h1>Replacement Reactions</h1>
+        <div className="mode-toggle">
+          <button
+            className={`mode-btn ${reactionType === 'single' ? 'active' : ''}`}
+            onClick={() => handleModeSwitch('single')}
+          >Single</button>
+          <button
+            className={`mode-btn ${reactionType === 'double' ? 'active' : ''}`}
+            onClick={() => handleModeSwitch('double')}
+          >Double</button>
+          <span className="mode-label">Replacement</span>
+        </div>
+        <button
+          className="tutorial-help-btn"
+          onClick={() => setShowTutorial(true)}
+          title="How to use this app"
+        >?</button>
         <div className="reaction-selector">
           <label>Reaction:</label>
           <select value={reactionIdx} onChange={e => resetReaction(Number(e.target.value))}>
-            {PRESET_REACTIONS.map((r, i) => (
+            {reactionList.map((r, i) => (
               <option key={r.id} value={i}>Reaction {i + 1}</option>
             ))}
           </select>
@@ -310,8 +508,10 @@ export default function App() {
       <div className="app-grid">
         <TopLeftPanel
           reaction={reaction}
+          reactionType={reactionType}
           c1Coeff={c1Coeff}
           c2Coeff={c2Coeff}
+          metalCoeff={metalCoeff}
           selectedCharges={selectedCharges}
           onSelectCharge={handleSelectCharge}
           addedIons={addedIons}
@@ -336,6 +536,8 @@ export default function App() {
           onSubmit={handleSubmit}
           onNext={handleNextReaction}
           submitResult={submitResult}
+          reactionType={reactionType}
+          onNoReaction={handleNoReaction}
         />
 
         <BottomLeftPanel
