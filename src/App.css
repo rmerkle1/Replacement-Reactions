@@ -22,7 +22,7 @@
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 24px;
   padding: 9px 22px;
   background: #0c1018;
   border-bottom: 2px solid #17b29e44;
@@ -37,30 +37,13 @@
   font-family: 'Georgia', serif;
 }
 
-.reaction-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  color: #748ac5;
-}
-
-.reaction-selector select {
-  background: #161c28;
-  border: 1px solid #4f5b6f;
-  color: #c8d8f0;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
 
 /* ── Grid ─────────────────────────────────────────────────────────────────── */
 
 .app-grid {
   display: grid;
-  grid-template-columns: 1fr 52px 1fr;
-  grid-template-rows: 1.1fr 0.9fr;
+  grid-template-columns: 1fr 52px 1fr 128px;
+  grid-template-rows: 0.5fr 1.5fr;
   gap: 7px;
   padding: 8px;
   flex: 1;
@@ -77,6 +60,93 @@
   justify-content: space-around;
   align-items: center;
   pointer-events: none;
+}
+
+/* ── Action column (right sidebar) ───────────────────────────────────────── */
+
+.action-column {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.action-divider {
+  height: 1px;
+  background: #2e3f58;
+  margin: 4px 0;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 9px 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #2e3f58;
+  border-radius: 8px;
+  color: #8a9baa;
+  font-family: 'Georgia', serif;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.05);
+  border-color: #4f5b6f;
+  color: #c8dff0;
+}
+
+.action-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.action-btn-check {
+  border-color: #17b29e66;
+  color: #17b29e;
+  background: rgba(23,178,158,0.06);
+}
+
+.action-btn-check:hover:not(:disabled) {
+  border-color: #17b29e;
+  color: #a8e8d8;
+  background: rgba(23,178,158,0.12);
+  box-shadow: 0 0 10px rgba(23,178,158,0.2);
+}
+
+.action-btn-nr {
+  border-color: #e9177a55;
+  color: #e9177a;
+  background: rgba(233,23,122,0.06);
+}
+
+.action-btn-nr:hover:not(:disabled) {
+  border-color: #e9177a;
+  color: #ffa0c8;
+  background: rgba(233,23,122,0.12);
+  box-shadow: 0 0 10px rgba(233,23,122,0.2);
+}
+
+.action-btn-next {
+  border-color: #fdb71455;
+  color: #fdb714;
+  background: rgba(253,183,20,0.06);
+}
+
+.action-btn-next:hover:not(:disabled) {
+  border-color: #fdb714;
+  color: #ffe080;
+  background: rgba(253,183,20,0.12);
+  box-shadow: 0 0 10px rgba(253,183,20,0.2);
 }
 
 .reaction-arrow-wrapper {
@@ -174,12 +244,18 @@
 }
 
 /* The main equation row: [compound block] + [compound block] */
-.reactants-equation-row,
-.products-equation-row {
+.reactants-equation-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.products-equation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 /* + sign between compounds */
@@ -187,9 +263,7 @@
   font-size: 1.5rem;
   color: #fdb714;
   padding: 0 2px;
-  align-self: flex-start;
-  margin-top: 4px;
-  line-height: 1.6;
+  line-height: 1;
 }
 
 /* Each compound block: formula on top, ion dropdowns below */
@@ -211,13 +285,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 30px;
-  height: 30px;
+  min-width: 32px;
+  height: 32px;
   background: #11151f;
   border: 2px solid #4f5b6f;
   border-radius: 6px;
   color: #4f5b6f;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-family: 'Georgia', serif;
   font-weight: bold;
   transition: border-color 0.2s, color 0.2s;
@@ -230,7 +304,7 @@
 }
 
 .compound-formula {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   color: #c8d8f0;
   font-family: 'Georgia', serif;
   white-space: nowrap;
@@ -261,15 +335,27 @@
   border: 1px solid #4f5b6f;
   color: #c8d8f0;
   border-radius: 6px;
-  padding: 4px 5px;
-  font-size: 0.82rem;
+  padding: 4px 4px;
+  font-size: 0.8rem;
   font-family: 'Georgia', serif;
   width: 100%;
-  min-width: 80px;
-  max-width: 120px;
+  min-width: 64px;
+  max-width: 88px;
   cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 .ion-charge-select:focus { outline: none; border-color: #00addb; }
+
+.ion-charge-select.check-correct {
+  border-color: #85c441;
+  background: rgba(133, 196, 65, 0.1);
+  color: #b8e870;
+}
+.ion-charge-select.check-incorrect {
+  border-color: #e9177a;
+  background: rgba(233, 23, 122, 0.1);
+  color: #ffa0c8;
+}
 
 /* Compound formula as an add button */
 .compound-add-btn {
@@ -277,7 +363,7 @@
   border: 2px solid transparent;
   border-radius: 8px;
   font-family: 'Georgia', serif;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   color: #c8d8f0;
   padding: 3px 8px;
   cursor: default;
@@ -447,9 +533,9 @@
   color: #748ac5;
   border-radius: 6px;
   padding: 3px 5px;
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   font-family: 'Georgia', serif;
-  width: 62px;
+  width: 70px;
   cursor: pointer;
 }
 .state-select:focus { outline: none; border-color: #00addb; }
@@ -477,19 +563,25 @@
 }
 .solubility-btn:hover { box-shadow: 0 2px 8px rgba(116,138,197,0.35); }
 
-.next-btn {
-  background: rgba(23, 178, 158, 0.15);
-  border-color: #17b29e;
-  color: #70e8d8;
+/* ── Check Ions button ────────────────────────────────────────────────────── */
+
+.check-ions-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  border: 1px solid #748ac566;
+  background: rgba(116,138,197,0.1);
+  color: #a8bae8;
+  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
 }
-.next-btn:hover { box-shadow: 0 2px 8px rgba(23,178,158,0.35); }
-
-/* ── Submit area ──────────────────────────────────────────────────────────── */
-
-.submit-area {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.check-ions-btn:hover {
+  border-color: #748ac5;
+  color: #c8dff0;
+  box-shadow: 0 2px 8px rgba(116,138,197,0.3);
 }
 
 .submit-btn {
@@ -646,43 +738,40 @@
   padding-top: 10px;
 }
 
-/* ── Mode Toggle ──────────────────────────────────────────────────────────── */
+/* ── Mode Switch (pill toggle) ────────────────────────────────────────────── */
 
-.mode-toggle {
+.mode-switch {
   display: flex;
   align-items: center;
-  gap: 0;
-  border: 1px solid #4f5b6f;
-  border-radius: 8px;
-  overflow: hidden;
+  background: #0a0e18;
+  border: 1px solid #2e3f58;
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
 }
 
-.mode-btn {
+.mode-switch-btn {
   background: transparent;
   border: none;
   color: #4f5b6f;
-  padding: 5px 14px;
-  font-size: 0.8rem;
+  padding: 5px 18px;
+  font-size: 0.82rem;
   font-family: 'Georgia', serif;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  border-radius: 16px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
 }
 
-.mode-btn.active {
+.mode-switch-btn.active {
   background: #00addb;
   color: #fff;
+  box-shadow: 0 1px 8px rgba(0,173,219,0.4);
 }
 
-.mode-btn:hover:not(.active) {
-  background: rgba(255,255,255,0.05);
+.mode-switch-btn:hover:not(.active) {
   color: #c8d8f0;
-}
-
-.mode-label {
-  font-size: 0.8rem;
-  color: #4f5b6f;
-  padding: 0 10px 0 4px;
-  font-family: 'Georgia', serif;
+  background: rgba(255,255,255,0.04);
 }
 
 /* ── Solid Metal Ion ──────────────────────────────────────────────────────── */
@@ -698,30 +787,10 @@
   font-style: normal;
 }
 
-/* ── No Reaction Button ───────────────────────────────────────────────────── */
-
-.nr-btn {
-  padding: 7px 14px;
-}
-
-.submit-or {
-  font-size: 0.78rem;
-  color: #8a9baa;
-  font-style: italic;
-  user-select: none;
-}
-
-.submit-btn-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 /* ── Static state label (solid metals) ───────────────────────────────────── */
 
 .static-state {
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   color: #748ac5;
   font-family: 'Georgia', serif;
   padding: 3px 5px;
@@ -794,8 +863,7 @@
   background: #1a2535;
   border: 1px solid #2e3f58;
   border-radius: 14px;
-  width: min(680px, 92vw);
-  max-height: 82vh;
+  width: min(580px, 92vw);
   display: flex;
   flex-direction: column;
   box-shadow: 0 12px 48px rgba(0,0,0,0.6);
@@ -805,99 +873,235 @@
 .tutorial-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px 14px;
+  gap: 10px;
+  padding: 16px 20px 14px;
   border-bottom: 1px solid #2e3f58;
   flex-shrink: 0;
 }
 
 .tutorial-header h2 {
   margin: 0;
-  font-size: 1.15rem;
+  flex: 1;
+  font-size: 1.05rem;
   color: #17b29e;
   font-family: 'Georgia', serif;
   letter-spacing: 0.03em;
 }
 
-.tutorial-body {
-  overflow-y: auto;
-  padding: 6px 22px 10px;
-  flex: 1;
+.tutorial-step-counter {
+  font-size: 0.78rem;
+  color: #4f5b6f;
+  font-family: 'Georgia', serif;
+  white-space: nowrap;
 }
 
-.tutorial-steps {
-  list-style: none;
-  counter-reset: step;
-  padding: 0;
-  margin: 0;
-}
+/* ── Progress bar ── */
 
-.tutorial-steps > li {
-  counter-increment: step;
-  display: grid;
-  grid-template-columns: 2rem 1fr;
-  gap: 0 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid #1e2e42;
-}
-
-.tutorial-steps > li:last-child {
-  border-bottom: none;
-}
-
-.tutorial-steps > li::before {
-  content: counter(step);
-  grid-row: 1 / 3;
-  width: 2rem;
-  height: 2rem;
-  background: #17b29e22;
-  border: 1px solid #17b29e66;
-  border-radius: 50%;
-  color: #17b29e;
-  font-weight: bold;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tutorial-progress-track {
+  height: 3px;
+  background: #1e2e42;
   flex-shrink: 0;
-  margin-top: 2px;
+}
+
+.tutorial-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #17b29e, #00addb);
+  transition: width 0.3s ease;
+}
+
+/* ── Body ── */
+
+.tutorial-body {
+  padding: 18px 22px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Panel diagram ── */
+
+.panel-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.diagram-header {
+  background: #11151f;
+  border: 1px solid #2e3f58;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  color: #4f5b6f;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.diagram-header.active {
+  background: rgba(23,178,158,0.12);
+  border-color: #17b29e;
+  color: #17b29e;
+}
+
+.diagram-grid {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr;
+  gap: 4px;
+  align-items: center;
+}
+
+.diagram-cell {
+  background: #11151f;
+  border: 1px solid #2e3f58;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.68rem;
+  color: #4f5b6f;
+  text-align: center;
+  line-height: 1.4;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.diagram-cell span {
+  display: block;
+  font-size: 0.62rem;
+  color: #3a4a5f;
+  margin-top: 1px;
+}
+
+.diagram-cell.active {
+  background: rgba(23,178,158,0.12);
+  border-color: #17b29e;
+  color: #a8e8d8;
+}
+
+.diagram-cell.active span {
+  color: #5bbfae;
+}
+
+.diagram-arrow {
+  text-align: center;
+  font-size: 1rem;
+  color: #fdb71455;
+}
+
+/* ── Step content ── */
+
+.tutorial-step-content {
+  flex: 1;
 }
 
 .tutorial-step-title {
   font-weight: bold;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   color: #c8dff0;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   letter-spacing: 0.02em;
+  font-family: 'Georgia', serif;
 }
 
-.tutorial-steps p {
-  margin: 0;
-  font-size: 0.81rem;
+.tutorial-step-text p {
+  margin: 0 0 8px 0;
+  font-size: 0.82rem;
   color: #8a9baa;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-.tutorial-steps strong {
+.tutorial-step-text p:last-child {
+  margin-bottom: 0;
+}
+
+.tutorial-step-text strong {
   color: #c8dff0;
 }
 
-.tutorial-steps em {
+.tutorial-step-text em {
   color: #fdb714;
   font-style: normal;
 }
 
+/* ── Footer / Navigation ── */
+
 .tutorial-footer {
-  padding: 14px 22px 18px;
+  padding: 12px 20px 16px;
   border-top: 1px solid #2e3f58;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   flex-shrink: 0;
 }
 
-.tutorial-footer .submit-btn {
-  padding: 9px 32px;
-  font-size: 0.92rem;
+.tutorial-nav-btn {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid #2e3f58;
+  border-radius: 8px;
+  color: #748ac5;
+  font-size: 0.82rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.tutorial-nav-btn:hover:not(:disabled) {
+  border-color: #748ac5;
+  color: #c8dff0;
+  background: rgba(116,138,197,0.08);
+}
+
+.tutorial-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.tutorial-nav-next {
+  border-color: #17b29e66;
+  color: #17b29e;
+}
+
+.tutorial-nav-next:hover:not(:disabled) {
+  border-color: #17b29e;
+  color: #a8e8d8;
+  background: rgba(23,178,158,0.08);
+}
+
+.tutorial-finish-btn {
+  padding: 6px 22px;
+  font-size: 0.88rem;
+}
+
+/* ── Progress dots ── */
+
+.tutorial-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tutorial-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2e3f58;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.tutorial-dot.active {
+  background: #17b29e;
+  transform: scale(1.3);
+}
+
+.tutorial-dot:hover:not(.active) {
+  background: #4f5b6f;
 }
 
 /* ── Tutorial help button (header) ───────────────────────────────────────── */
@@ -923,4 +1127,154 @@
 .tutorial-help-btn:hover {
   background: rgba(23,178,158,0.25);
   box-shadow: 0 0 8px rgba(23,178,158,0.35);
+}
+
+/* ── Tutorial highlight (glowing border on active panel / element) ─────────── */
+
+@keyframes tutorial-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(23,178,158,0.25), 0 0 22px rgba(23,178,158,0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(23,178,158,0.4), 0 0 36px rgba(23,178,158,0.35);
+  }
+}
+
+.tutorial-highlight {
+  outline: 2px solid #17b29e !important;
+  outline-offset: 1px;
+  animation: tutorial-pulse 2s ease-in-out infinite;
+  position: relative;
+  z-index: 10;
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: all !important;
+}
+
+.tutorial-dimmed {
+  opacity: 0.18 !important;
+  filter: grayscale(0.7) !important;
+  pointer-events: none !important;
+  transition: opacity 0.35s ease, filter 0.35s ease;
+}
+
+/* Header gets a bottom-border glow instead of outline */
+header.tutorial-highlight {
+  outline: none !important;
+  border-bottom-color: #17b29e !important;
+  box-shadow: 0 4px 20px rgba(23,178,158,0.35);
+  animation: none;
+}
+
+/* ── Tutorial overlay card (floating bottom-center) ───────────────────────── */
+
+.tutorial-card {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(480px, 92vw);
+  background: #141c2c;
+  border: 1px solid #2e4060;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.75), 0 0 0 1px rgba(23,178,158,0.08);
+  z-index: 400;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+.tutorial-card-progress-track {
+  height: 3px;
+  background: #1a2640;
+}
+
+.tutorial-card-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #17b29e, #00addb);
+  transition: width 0.4s ease;
+}
+
+.tutorial-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 4px;
+}
+
+.tutorial-card-step-num {
+  font-size: 0.7rem;
+  color: #4f6a88;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tutorial-card-exit-btn {
+  background: transparent;
+  border: 1px solid #2e4060;
+  border-radius: 5px;
+  color: #4f6a88;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.tutorial-card-exit-btn:hover {
+  border-color: #e9177a66;
+  color: #e9177a;
+}
+
+.tutorial-card-title {
+  padding: 4px 14px 2px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #17b29e;
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.02em;
+}
+
+.tutorial-card-body {
+  padding: 4px 14px 10px;
+  font-size: 0.82rem;
+  color: #8aaccc;
+  line-height: 1.6;
+}
+
+.tutorial-card-body-warn {
+  color: #ffb0c8;
+}
+
+.tutorial-card-footer {
+  padding: 8px 14px 12px;
+  border-top: 1px solid #1a2640;
+  display: flex;
+  align-items: center;
+}
+
+.tutorial-card-btn {
+  padding: 6px 20px;
+  background: linear-gradient(135deg, #17b29e, #0d8a7a);
+  border: 1px solid #17b29e;
+  border-radius: 7px;
+  color: #d0fff8;
+  font-size: 0.85rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.1s;
+}
+
+.tutorial-card-btn:hover {
+  box-shadow: 0 3px 12px rgba(23,178,158,0.45);
+  transform: translateY(-1px);
+}
+
+.tutorial-card-btn:active {
+  transform: translateY(0);
+}
+
+.tutorial-card-waiting {
+  font-size: 0.76rem;
+  color: #4f6a88;
+  font-style: italic;
 }

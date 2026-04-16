@@ -1,6 +1,6 @@
 /** Build dropdown charge options for a given ion symbol */
 export function chargeOptions(symbolHTML, isAnion) {
-  const values = isAnion ? [0, -1, -2, -3, -4] : [0, 1, 2, 3, 4]
+  const values = isAnion ? [0, -1, -2, -3, -4, -5] : [0, 1, 2, 3, 4, 5]
   return values.map((charge) => ({
     value: charge,
     html: ionDisplayHTML(symbolHTML, charge),
@@ -87,23 +87,40 @@ export function dist(x1, y1, x2, y2) {
 /**
  * Derive the top-right product list from right-panel items.
  * Groups identical molecules (same formulaHTML) and counts them.
+ * Also collects neutral solid metals (items where kind==='ion' && isNeutralSolid===true).
  */
 export function deriveProducts(rightItems) {
   const map = new Map()
   for (const item of rightItems) {
-    if (item.kind !== 'molecule') continue
-    const key = item.formulaHTML
-    if (map.has(key)) {
-      map.get(key).coefficient += 1
-    } else {
-      map.set(key, {
-        formulaHTML: item.formulaHTML,
-        netCharge: item.netCharge,
-        ions: item.ions,
-        coefficient: 1,
-        state: '',
-        id: item.id,
-      })
+    if (item.kind === 'molecule') {
+      const key = item.formulaHTML
+      if (map.has(key)) {
+        map.get(key).coefficient += 1
+      } else {
+        map.set(key, {
+          formulaHTML: item.formulaHTML,
+          netCharge: item.netCharge,
+          ions: item.ions,
+          coefficient: 1,
+          state: '',
+          id: item.id,
+        })
+      }
+    } else if (item.kind === 'ion' && item.isNeutralSolid) {
+      const key = 'solid_' + item.symbol
+      if (map.has(key)) {
+        map.get(key).coefficient++
+      } else {
+        map.set(key, {
+          formulaHTML: item.symbolHTML,
+          netCharge: 0,
+          ions: [{ symbol: item.symbol, symbolHTML: item.symbolHTML, charge: 0, count: 1 }],
+          coefficient: 1,
+          state: 's',
+          id: item.id,
+          isSolidMetal: true,
+        })
+      }
     }
   }
   return Array.from(map.values())
@@ -139,17 +156,18 @@ export function autoCoeff(addedIons, cationKey, cationCharge, anionCharge) {
 
 /**
  * Grid position for bottom-left panel.
- * Compound-1 ions go on the left half; compound-2 on the right half.
+ * Compound-1 ions and metalion go on the left half; compound-2/salt on the right half.
  */
 export function gridPosition(ionKey, existingIons) {
-  const isComp1 = ionKey.startsWith('c1')
-  const sameGroup = existingIons.filter((i) =>
-    i.ionKey.startsWith(isComp1 ? 'c1' : 'c2')
-  )
+  const isLeft = ionKey.startsWith('c1') || ionKey === 'metalion'
+  const sameGroup = existingIons.filter(i => {
+    const il = i.ionKey.startsWith('c1') || i.ionKey === 'metalion'
+    return il === isLeft
+  })
   const idx = sameGroup.length
   const col = idx % 3
   const row = Math.floor(idx / 3)
-  const baseX = isComp1 ? 48 : 310
+  const baseX = isLeft ? 48 : 310
   return {
     x: baseX + col * 80,
     y: 50 + row * 70,

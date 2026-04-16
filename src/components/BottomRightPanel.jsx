@@ -8,6 +8,7 @@ export default function BottomRightPanel({
   onMove,
   onDrop,
   onBreakMolecule,
+  tutorialHighlighted, tutorialDimmed,
 }) {
   const panelRef = useRef(null)
   const dragging = useRef(null)
@@ -60,6 +61,7 @@ export default function BottomRightPanel({
         if (item?.kind === 'molecule') {
           onBreakMolecule(id)
         }
+        // Solid metal ions (kind: 'ion') do not trigger break logic — already handled
       } else {
         const rect = panelRef.current.getBoundingClientRect()
         const x = e.clientX - rect.left - offsetX
@@ -71,8 +73,10 @@ export default function BottomRightPanel({
     [items, onDrop, onBreakMolecule]
   )
 
+  const hl = tutorialHighlighted ? ' tutorial-highlight' : ''
+  const dim = tutorialDimmed ? ' tutorial-dimmed' : ''
   return (
-    <div className={`panel bottom-right-panel ${!unlocked ? 'locked' : ''}`}>
+    <div className={`panel bottom-right-panel${!unlocked ? ' locked' : ''}${hl}${dim}`}>
       <div className="panel-label">Product Formation</div>
       {!unlocked && (
         <div className="locked-overlay">
@@ -86,17 +90,32 @@ export default function BottomRightPanel({
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
       >
-        {items.map((item) =>
-          item.kind === 'ion' ? (
-            <SingleIon key={item.id} item={item} onPointerDown={handlePointerDown} />
-          ) : (
-            <MoleculeItem key={item.id} item={item} onPointerDown={handlePointerDown} />
-          )
-        )}
+        {items.map((item) => {
+          if (item.kind === 'ion' && item.isNeutralSolid) {
+            return <SolidMetalItem key={item.id} item={item} onPointerDown={handlePointerDown} />
+          }
+          if (item.kind === 'ion') {
+            return <SingleIon key={item.id} item={item} onPointerDown={handlePointerDown} />
+          }
+          return <MoleculeItem key={item.id} item={item} onPointerDown={handlePointerDown} />
+        })}
       </div>
       <p className="hint-text">
         ③ Drag ions together to snap them into molecules. Click a molecule to break it apart.
       </p>
+    </div>
+  )
+}
+
+function SolidMetalItem({ item, onPointerDown }) {
+  return (
+    <div
+      className="draggable-ion solid-metal"
+      style={{ left: item.x, top: item.y, backgroundColor: '#4f5b6f' }}
+      onPointerDown={(e) => onPointerDown(e, item.id)}
+      title="Reduced metal (solid)"
+    >
+      {item.symbol}<span className="solid-state-label">(s)</span>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SolubilityModal from './SolubilityModal.jsx'
+import ActivitySeriesModal from './ActivitySeriesModal.jsx'
 
 const STATE_OPTIONS = ['', 'aq', 's', 'l', 'g']
 
@@ -8,31 +9,37 @@ export default function TopRightPanel({
   products,
   productStates,
   onStateChange,
-  onSubmit,
-  onNext,
   submitResult,
+  reactionType,
+  tutorialHighlighted, tutorialDimmed,
 }) {
   const [showSolubility, setShowSolubility] = useState(false)
+  const [showActivity, setShowActivity] = useState(false)
+  const hl = tutorialHighlighted ? ' tutorial-highlight' : ''
+  const dim = tutorialDimmed ? ' tutorial-dimmed' : ''
 
   return (
-    <div className={`panel top-right-panel ${!unlocked ? 'locked' : ''}`}>
+    <div className={`panel top-right-panel${!unlocked ? ' locked' : ''}${hl}${dim}`}>
       <div className="panel-header-row">
         <div className="panel-label" style={{ borderBottom: 'none', paddingBottom: 0 }}>Products</div>
         <div className="panel-action-btns">
-          <button
-            className="tool-btn solubility-btn"
-            onClick={() => setShowSolubility(true)}
-            title="View solubility rules"
-          >
-            Solubility Table
-          </button>
-          <button
-            className="tool-btn next-btn"
-            onClick={onNext}
-            title="Move to the next reaction"
-          >
-            Next →
-          </button>
+          {reactionType === 'single' ? (
+            <button
+              className="tool-btn solubility-btn"
+              onClick={() => setShowActivity(true)}
+              title="View activity series"
+            >
+              Activity Series
+            </button>
+          ) : (
+            <button
+              className="tool-btn solubility-btn"
+              onClick={() => setShowSolubility(true)}
+              title="View solubility rules"
+            >
+              Solubility Table
+            </button>
+          )}
         </div>
       </div>
 
@@ -69,31 +76,31 @@ export default function TopRightPanel({
         ))}
       </div>
 
-      {unlocked && (
-        <div className="submit-area">
-          <button className="submit-btn" onClick={onSubmit}>Check Answer</button>
-          {submitResult && (
-            <div className={`submit-feedback ${submitResult.correct ? 'correct' : 'incorrect'}`}>
-              {submitResult.correct ? (
-                <span>✓ Correct! The equation is balanced.</span>
-              ) : (
-                <>
-                  <strong>Not quite — check the following:</strong>
-                  <ul>
-                    {submitResult.feedback.map((msg, i) => <li key={i}>{msg}</li>)}
-                  </ul>
-                </>
-              )}
-            </div>
+      {submitResult && (
+        <div className={`submit-feedback ${submitResult.correct ? 'correct' : 'incorrect'}`}>
+          {submitResult.correct ? (
+            <span>
+              {submitResult.wasNoReaction
+                ? '✓ Correct! No reaction occurs here.'
+                : '✓ Correct! The equation is balanced.'}
+            </span>
+          ) : (
+            <>
+              <strong>Not quite — check the following:</strong>
+              <ul>
+                {submitResult.feedback.map((msg, i) => <li key={i}>{msg}</li>)}
+              </ul>
+            </>
           )}
         </div>
       )}
 
       <p className="hint-text">
-        ④ Molecules formed below appear here. Select each state of matter, then check your answer.
+        Molecules formed below appear here. Select each state of matter, then check your answer.
       </p>
 
       {showSolubility && <SolubilityModal onClose={() => setShowSolubility(false)} />}
+      {showActivity && <ActivitySeriesModal onClose={() => setShowActivity(false)} />}
     </div>
   )
 }

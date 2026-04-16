@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PRESET_REACTIONS, SINGLE_REACTIONS } from './data/chemistry.js'
 import { SLOT_COLORS } from './data/chemistry.js'
 import {
@@ -9,15 +9,18 @@ import TopLeftPanel from './components/TopLeftPanel.jsx'
 import BottomLeftPanel from './components/BottomLeftPanel.jsx'
 import BottomRightPanel from './components/BottomRightPanel.jsx'
 import TopRightPanel from './components/TopRightPanel.jsx'
-import TutorialModal from './components/TutorialModal.jsx'
+import TutorialOverlay, { TUTORIAL_STEPS } from './components/TutorialOverlay.jsx'
 import './App.css'
 
 const SNAP_DISTANCE = 64
 
 export default function App() {
-  const [showTutorial, setShowTutorial] = useState(
-    () => !localStorage.getItem('tutorialSeen')
+  // -1 = not active; 0..N = active step index
+  const [tutorialStep, setTutorialStep] = useState(
+    () => localStorage.getItem('tutorialSeen') ? -1 : 0
   )
+  const tutorialActive = tutorialStep >= 0
+
   const [reactionType, setReactionType] = useState('double') // 'single' | 'double'
   const [singleIdx, setSingleIdx] = useState(0)
   const [doubleIdx, setDoubleIdx] = useState(0)
@@ -44,6 +47,7 @@ export default function App() {
   const [productStates, setProductStates] = useState({})
 
   const [submitResult, setSubmitResult] = useState(null)
+  const [ionCheckResult, setIonCheckResult] = useState(null)
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   const bottomUnlocked = addedIons.length > 0
@@ -71,6 +75,30 @@ export default function App() {
   function handleSelectCharge(ionKey, charge) {
     setSelectedCharges(prev => ({ ...prev, [ionKey]: charge }))
     setSubmitResult(null)
+    setIonCheckResult(null)
+  }
+
+  function handleCheckIons() {
+    const result = {}
+    if (reactionType === 'double') {
+      const { compound1, compound2 } = reaction
+      if (selectedCharges.c1cation !== null)
+        result.c1cation = selectedCharges.c1cation === compound1.cation.charge ? 'correct' : 'incorrect'
+      if (selectedCharges.c1anion !== null)
+        result.c1anion = selectedCharges.c1anion === compound1.anion.charge ? 'correct' : 'incorrect'
+      if (selectedCharges.c2cation !== null)
+        result.c2cation = selectedCharges.c2cation === compound2.cation.charge ? 'correct' : 'incorrect'
+      if (selectedCharges.c2anion !== null)
+        result.c2anion = selectedCharges.c2anion === compound2.anion.charge ? 'correct' : 'incorrect'
+    } else {
+      if (selectedCharges.metalcharge !== null)
+        result.metalcharge = selectedCharges.metalcharge === reaction.metal.correctCharge ? 'correct' : 'incorrect'
+      if (selectedCharges.c2cation !== null)
+        result.c2cation = selectedCharges.c2cation === reaction.salt.cation.charge ? 'correct' : 'incorrect'
+      if (selectedCharges.c2anion !== null)
+        result.c2anion = selectedCharges.c2anion === reaction.salt.anion.charge ? 'correct' : 'incorrect'
+    }
+    setIonCheckResult(result)
   }
 
   /**
@@ -384,6 +412,7 @@ export default function App() {
     setRightItems([])
     setProductStates({})
     setSubmitResult(null)
+    setIonCheckResult(null)
   }
 
   function handleModeSwitch(newMode) {
@@ -398,10 +427,20 @@ export default function App() {
     setRightItems([])
     setProductStates({})
     setSubmitResult(null)
+    setIonCheckResult(null)
   }
 
   function handleNextReaction() {
-    resetReaction((reactionIdx + 1) % reactionList.length)
+    if (reactionList.length <= 1) {
+      resetReaction(0)
+      return
+    }
+    const options = reactionList.map((_, i) => i).filter(i => i !== reactionIdx)
+    resetReaction(options[Math.floor(Math.random() * options.length)])
+  }
+
+  function handleReset() {
+    resetReaction(reactionIdx)
   }
 
   function handleSubmit() {
@@ -447,15 +486,10 @@ export default function App() {
         allGood = false
         feedback.push(`A product's coefficient should be ${cp.coefficient}.`)
       }
-      // Solid metals always have state 's' — don't check productStates for them
-      if (cp.isSolidMetal) {
-        // state is always 's', no user input needed
-      } else {
-        const chosenState = productStates[found.formulaHTML] || ''
-        if (chosenState !== cp.state) {
-          allGood = false
-          feedback.push(`A product's state should be (${cp.state}).`)
-        }
+      const chosenState = productStates[found.formulaHTML] || ''
+      if (chosenState !== cp.state) {
+        allGood = false
+        feedback.push(`A product's state should be (${cp.state}).`)
       }
     }
 
@@ -469,40 +503,83 @@ export default function App() {
     setSubmitResult({ correct: allGood, feedback })
   }
 
-  function handleCloseTutorial() {
+  // ─── Tutorial auto-advance ────────────────────────────────────────────────
+  const tutorialAppState = {
+    reactionType,
+    c1cation: selectedCharges.c1cation,
+    c1anion: selectedCharges.c1anion,
+    c2cation: selectedCharges.c2cation,
+    c2anion: selectedCharges.c2anion,
+    metalcharge: selectedCharges.metalcharge,
+    ionCheckResult,
+    addedIons,
+    rightItems,
+    products,
+    productStates,
+    submitResult,
+    c1Coeff,
+    c2Coeff,
+  }
+
+  useEffect(() => {
+    if (!tutorialActive || tutorialStep >= TUTORIAL_STEPS.length) return
+    const step = TUTORIAL_STEPS[tutorialStep]
+    if (step.advanceOn && step.advanceOn(tutorialAppState)) {
+      setTutorialStep(s => Math.min(s + 1, TUTORIAL_STEPS.length - 1))
+    }
+  }) // no deps array — runs after every render for reactive advance
+
+  const currentTutorialStep = tutorialActive ? TUTORIAL_STEPS[tutorialStep] : null
+  const tutorialHighlight = currentTutorialStep?.highlight ?? null
+  const tutorialDimOthers = currentTutorialStep?.dimOthers ?? false
+
+  // Returns true if a named panel should be visually dimmed
+  const panelDimmed = (name) => tutorialDimOthers && tutorialHighlight !== name
+
+  function handleTutorialAdvance() {
+    setTutorialStep(s => Math.min(s + 1, TUTORIAL_STEPS.length - 1))
+  }
+
+  function handleTutorialExit() {
     localStorage.setItem('tutorialSeen', '1')
-    setShowTutorial(false)
+    setTutorialStep(-1)
+  }
+
+  function handleTutorialStart() {
+    // Always reset to the tutorial reaction: r1 (NaI + Pb(NO3)2, double replacement)
+    setReactionType('double')
+    setDoubleIdx(0)
+    setSelectedCharges({ c1cation: null, c1anion: null, c2cation: null, c2anion: null })
+    setAddedIons([])
+    setLeftPositions({})
+    setRightItems([])
+    setProductStates({})
+    setSubmitResult(null)
+    setIonCheckResult(null)
+    setTutorialStep(0)
   }
 
   return (
     <div className="app">
-      {showTutorial && <TutorialModal onClose={handleCloseTutorial} />}
-      <header className="app-header">
+      <header className={`app-header${tutorialHighlight === 'header' ? ' tutorial-highlight' : ''}`}>
         <h1>Replacement Reactions</h1>
-        <div className="mode-toggle">
+
+        <div className={`mode-switch${tutorialHighlight === 'mode-switch' ? ' tutorial-highlight' : ''}`}>
           <button
-            className={`mode-btn ${reactionType === 'single' ? 'active' : ''}`}
+            className={`mode-switch-btn ${reactionType === 'single' ? 'active' : ''}`}
             onClick={() => handleModeSwitch('single')}
           >Single</button>
           <button
-            className={`mode-btn ${reactionType === 'double' ? 'active' : ''}`}
+            className={`mode-switch-btn ${reactionType === 'double' ? 'active' : ''}`}
             onClick={() => handleModeSwitch('double')}
           >Double</button>
-          <span className="mode-label">Replacement</span>
         </div>
+
         <button
           className="tutorial-help-btn"
-          onClick={() => setShowTutorial(true)}
+          onClick={handleTutorialStart}
           title="How to use this app"
         >?</button>
-        <div className="reaction-selector">
-          <label>Reaction:</label>
-          <select value={reactionIdx} onChange={e => resetReaction(Number(e.target.value))}>
-            {reactionList.map((r, i) => (
-              <option key={r.id} value={i}>Reaction {i + 1}</option>
-            ))}
-          </select>
-        </div>
       </header>
 
       <div className="app-grid">
@@ -517,6 +594,10 @@ export default function App() {
           addedIons={addedIons}
           onAddCompound={handleAddCompound}
           onRemoveCompound={handleRemoveCompound}
+          ionCheckResult={ionCheckResult}
+          onCheckIons={handleCheckIons}
+          tutorialHighlighted={tutorialHighlight === 'top-left'}
+          tutorialDimmed={panelDimmed('top-left')}
         />
 
         <div className="arrow-column">
@@ -533,11 +614,10 @@ export default function App() {
           products={products}
           productStates={productStates}
           onStateChange={handleProductStateChange}
-          onSubmit={handleSubmit}
-          onNext={handleNextReaction}
           submitResult={submitResult}
           reactionType={reactionType}
-          onNoReaction={handleNoReaction}
+          tutorialHighlighted={tutorialHighlight === 'top-right'}
+          tutorialDimmed={panelDimmed('top-right')}
         />
 
         <BottomLeftPanel
@@ -545,6 +625,8 @@ export default function App() {
           ions={addedIons}
           positions={leftPositions}
           onMove={handleLeftMove}
+          tutorialHighlighted={tutorialHighlight === 'bottom-left'}
+          tutorialDimmed={panelDimmed('bottom-left')}
         />
 
         <BottomRightPanel
@@ -553,8 +635,36 @@ export default function App() {
           onMove={handleRightMove}
           onDrop={handleRightDrop}
           onBreakMolecule={handleBreakMolecule}
+          tutorialHighlighted={tutorialHighlight === 'bottom-right'}
+          tutorialDimmed={panelDimmed('bottom-right')}
         />
+
+        <div className={`action-column${tutorialHighlight === 'action' ? ' tutorial-highlight' : ''}${panelDimmed('action') ? ' tutorial-dimmed' : ''}`}>
+          <button className="action-btn action-btn-check" onClick={handleSubmit}>
+            Check Reaction
+          </button>
+          <button className="action-btn action-btn-nr" onClick={handleNoReaction}>
+            No Reaction
+          </button>
+          <div className="action-divider" />
+          <button className="action-btn action-btn-next" onClick={handleNextReaction}>
+            Next →
+          </button>
+          <button className="action-btn" onClick={handleReset}>
+            Reset
+          </button>
+        </div>
       </div>
+
+      {tutorialActive && (
+        <TutorialOverlay
+          stepIndex={tutorialStep}
+          totalSteps={TUTORIAL_STEPS.length}
+          appState={tutorialAppState}
+          onAdvance={handleTutorialAdvance}
+          onExit={handleTutorialExit}
+        />
+      )}
     </div>
   )
 }

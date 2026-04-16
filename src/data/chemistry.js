@@ -16,6 +16,10 @@ export const SLOT_COLORS = {
   c1anion:  '#e9177a', // pink
   c2cation: '#85c441', // green
   c2anion:  '#748ac5', // purple
+  // Single-replacement slots
+  metalion:  '#fdb714', // yellow
+  saltcation: '#e9177a', // pink
+  saltanion:  '#748ac5', // purple
 }
 
 // Ion colors by charge value (kept as fallback)
@@ -78,6 +82,7 @@ export const PRESET_REACTIONS = [
         state: 'aq',
       },
     ],
+    noReaction: false,
   },
   {
     id: 'r2',
@@ -114,6 +119,7 @@ export const PRESET_REACTIONS = [
         state: 'aq',
       },
     ],
+    noReaction: false,
   },
   {
     id: 'r3',
@@ -150,6 +156,7 @@ export const PRESET_REACTIONS = [
         state: 'aq',
       },
     ],
+    noReaction: false,
   },
   {
     id: 'r4',
@@ -186,5 +193,55 @@ export const PRESET_REACTIONS = [
         state: 'aq',
       },
     ],
+    noReaction: false,
+  },
+]
+
+// Preset single-replacement reactions
+export const SINGLE_REACTIONS = [
+  // sr1: Zn(s) + CuSO4(aq) → ZnSO4(aq) + Cu(s)
+  {
+    id: 'sr1', type: 'single',
+    metal: { symbol: 'Zn', symbolHTML: 'Zn', formulaHTML: 'Zn', state: 's', correctCharge: 2 },
+    salt: { formulaHTML: 'CuSO<sub>4</sub>', cation: { symbol: 'Cu', symbolHTML: 'Cu', charge: 2 }, anion: { symbol: 'SO4', symbolHTML: 'SO<sub>4</sub>', charge: -2 }, state: 'aq' },
+    correctReactantCoeff: { metal: 1, salt: 1 },
+    correctProducts: [
+      { formulaHTML: 'ZnSO<sub>4</sub>', ions: [{ symbol: 'Zn', symbolHTML: 'Zn', charge: 2, count: 1 }, { symbol: 'SO4', symbolHTML: 'SO<sub>4</sub>', charge: -2, count: 1 }], coefficient: 1, state: 'aq' },
+      { formulaHTML: 'Cu', ions: [{ symbol: 'Cu', symbolHTML: 'Cu', charge: 0, count: 1 }], coefficient: 1, state: 's', isSolidMetal: true },
+    ],
+    noReaction: false,
+  },
+  // sr2: Cu(s) + 2AgNO3(aq) → Cu(NO3)2(aq) + 2Ag(s)
+  {
+    id: 'sr2', type: 'single',
+    metal: { symbol: 'Cu', symbolHTML: 'Cu', formulaHTML: 'Cu', state: 's', correctCharge: 2 },
+    salt: { formulaHTML: 'AgNO<sub>3</sub>', cation: { symbol: 'Ag', symbolHTML: 'Ag', charge: 1 }, anion: { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1 }, state: 'aq' },
+    correctReactantCoeff: { metal: 1, salt: 2 },
+    correctProducts: [
+      { formulaHTML: 'Cu(NO<sub>3</sub>)<sub>2</sub>', ions: [{ symbol: 'Cu', symbolHTML: 'Cu', charge: 2, count: 1 }, { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1, count: 2 }], coefficient: 1, state: 'aq' },
+      { formulaHTML: 'Ag', ions: [{ symbol: 'Ag', symbolHTML: 'Ag', charge: 0, count: 1 }], coefficient: 2, state: 's', isSolidMetal: true },
+    ],
+    noReaction: false,
+  },
+  // sr3: Zn(s) + Pb(NO3)2(aq) → Zn(NO3)2(aq) + Pb(s)
+  {
+    id: 'sr3', type: 'single',
+    metal: { symbol: 'Zn', symbolHTML: 'Zn', formulaHTML: 'Zn', state: 's', correctCharge: 2 },
+    salt: { formulaHTML: 'Pb(NO<sub>3</sub>)<sub>2</sub>', cation: { symbol: 'Pb', symbolHTML: 'Pb', charge: 2 }, anion: { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1 }, state: 'aq' },
+    correctReactantCoeff: { metal: 1, salt: 1 },
+    correctProducts: [
+      { formulaHTML: 'Zn(NO<sub>3</sub>)<sub>2</sub>', ions: [{ symbol: 'Zn', symbolHTML: 'Zn', charge: 2, count: 1 }, { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1, count: 2 }], coefficient: 1, state: 'aq' },
+      { formulaHTML: 'Pb', ions: [{ symbol: 'Pb', symbolHTML: 'Pb', charge: 0, count: 1 }], coefficient: 1, state: 's', isSolidMetal: true },
+    ],
+    noReaction: false,
+  },
+  // sr4: Cu(s) + ZnSO4(aq) → No Reaction (Cu less active than Zn)
+  {
+    id: 'sr4', type: 'single',
+    metal: { symbol: 'Cu', symbolHTML: 'Cu', formulaHTML: 'Cu', state: 's', correctCharge: null },
+    salt: { formulaHTML: 'ZnSO<sub>4</sub>', cation: { symbol: 'Zn', symbolHTML: 'Zn', charge: 2 }, anion: { symbol: 'SO4', symbolHTML: 'SO<sub>4</sub>', charge: -2 }, state: 'aq' },
+    correctReactantCoeff: { metal: 1, salt: 1 },
+    correctProducts: [],
+    noReaction: true,
   },
 ]
