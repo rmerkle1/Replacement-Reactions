@@ -13,9 +13,9 @@ export default function TutorialModal({ onClose }) {
             <li>
               <div className="tutorial-step-title">Choose a Reaction Type</div>
               <p>
-                Use the <strong>Single / Double</strong> toggle in the header to switch between
-                single replacement (one metal displaces another) and double replacement
-                (two ionic compounds swap partners). Then pick a specific reaction from the
+                Use the <strong>Single / Double</strong> toggle in the header
+                to switch between single replacement and double replacement
+                reactions. Then pick a specific reaction from the
                 <strong> Reaction</strong> dropdown.
               </p>
             </li>
@@ -23,8 +23,8 @@ export default function TutorialModal({ onClose }) {
             <li>
               <div className="tutorial-step-title">Select Ion Charges (Top Left)</div>
               <p>
-                Each reactant has dropdowns beneath it for each ion's charge. Select the
-                correct charge for every ion — the formula button will turn teal once all
+                Specify the ion charge of each aqueous reactant in the dropdown below. Select
+                the correct charge for every ion — the formula button will turn teal once all
                 charges are chosen. In <em>Single Replacement</em>, only the metal's
                 ionization charge needs to be selected.
               </p>
