@@ -3,8 +3,8 @@
 html, body, #root {
   height: 100%;
   font-family: 'Georgia', serif;
-  background: #1a1f2e;
-  color: #e8eaf0;
+  background: #eef1f5;
+  color: #1a202c;
 }
 
 sub { font-size: 0.7em; vertical-align: sub; }
