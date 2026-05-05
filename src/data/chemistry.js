@@ -913,18 +913,7 @@ export const SINGLE_REACTIONS = [
     ],
     noReaction: false,
   },
-  // sr2: Cu(s) + 2AgNO3(aq) → Cu(NO3)2(aq) + 2Ag(s)
-  {
-    id: 'sr2', type: 'single',
-    metal: { symbol: 'Cu', symbolHTML: 'Cu', formulaHTML: 'Cu', state: 's', correctCharge: 2 },
-    salt: { formulaHTML: 'AgNO<sub>3</sub>', cation: { symbol: 'Ag', symbolHTML: 'Ag', charge: 1 }, anion: { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1 }, state: 'aq' },
-    correctReactantCoeff: { metal: 1, salt: 2 },
-    correctProducts: [
-      { formulaHTML: 'Cu(NO<sub>3</sub>)<sub>2</sub>', ions: [{ symbol: 'Cu', symbolHTML: 'Cu', charge: 2, count: 1 }, { symbol: 'NO3', symbolHTML: 'NO<sub>3</sub>', charge: -1, count: 2 }], coefficient: 1, state: 'aq' },
-      { formulaHTML: 'Ag', ions: [{ symbol: 'Ag', symbolHTML: 'Ag', charge: 0, count: 1 }], coefficient: 2, state: 's', isSolidMetal: true },
-    ],
-    noReaction: false,
-  },
+
   // sr3: Zn(s) + Pb(NO3)2(aq) → Zn(NO3)2(aq) + Pb(s)
   {
     id: 'sr3', type: 'single',
